@@ -1,0 +1,28 @@
+{
+  "name": "parkinsons-lee-county-heatmap",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && npm run build:ml",
+    "build:ml": "node scripts/train-models.js",
+    "preview": "vite preview",
+    "serve": "python -m http.server 5000 -d dist"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "d3": "^7.8.0",
+    "plotly.js-dist-min": "^2.26.0",
+    "tensorflow": "^4.11.0",
+    "tensorflow-models": "^2.0.0",
+    "@stdlib/stdlib": "^0.0.13"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "vue": "^3.3.0",
+    "typescript": "^5.3.0",
+    "@types/d3": "^7.4.0",
+    "sass": "^1.69.0"
+  }
+}
