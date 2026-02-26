@@ -14,7 +14,6 @@
     "d3": "^7.8.0",
     "plotly.js-dist-min": "^2.26.0",
     "@tensorflow/tfjs": "^4.22.0",
-    "tensorflow-models": "^2.0.0",
     "@stdlib/stdlib": "^0.0.13"
   },
   "devDependencies": {
