@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lee County Parkinson's Disease Heatmap & ML Forecast</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #1a202c;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 40px;
+        }
+        
+        .section {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .section h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 500px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #4a5568;
+        }
+        
+        .control-group select,
+        .control-group input {
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+        
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.85em;
+            color: #718096;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #2d3748;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #718096;
+        }
+        
+        .spinner {
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #c53030;
+        }
+        
+        .success {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #48bb78;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .data-source {
+            margin-top: 20px;
+            padding: 15px;
+            background: #edf2f7;
+            border-radius: 6px;
+            font-size: 0.85em;
+            color: #4a5568;
+        }
+        
+        .data-source a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .data-source a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Lee County Parkinson's Disease Heatmap</h1>
+            <p>AI-Powered Population Health Forecasting & Geographic Distribution Analysis</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- Current Population Distribution -->
+            <div class="section">
+                <h2>📊 Current Age Distribution</h2>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="yearSelector">Select Year:</label>
+                        <select id="yearSelector">
+                            <option value="2024">2024 (Current)</option>
+                            <option value="2020">2020</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="ageDistributionChart" class="chart-container">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Population</div>
+                        <div class="stat-value" id="totalPop">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Median Age</div>
+                        <div class="stat-value" id="medianAge">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">65+ Population</div>
+                        <div class="stat-value" id="seniorPop">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">% Age 65+</div>
+                        <div class="stat-value" id="seniorPct">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Future Population Projection -->
+            <div class="section">
+                <h2>📈 Population Projection (2025-2050)</h2>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="projectionType">Projection Type:</label>
+                        <select id="projectionType">
+                            <option value="total">Total Population</option>
+                            <option value="age65plus">Age 65+</option>
+                            <option value="ageStructure">Age Structure Change</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="populationProjectionChart" class="chart-container">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+            </div>
+            
+            <!-- Parkinson's Mortality Rates -->
+            <div class="section">
+                <h2>💊 Parkinson's Mortality by Age Group</h2>
+                <div class="controls">
+                    <button class="button" onclick="app.loadMortalityData()">Load CDC WONDER Data</button>
+                </div>
+                <div id="mortalityChart" class="chart-container">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Highest Risk Group</div>
+                        <div class="stat-value" id="highestRiskGroup">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Rate (per 100K)</div>
+                        <div class="stat-value" id="highestRiskRate">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ML Forecast -->
+            <div class="section">
+                <h2>🤖 ML Parkinson's Burden Forecast</h2>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="forecastYear">Forecast to Year:</label>
+                        <input type="number" id="forecastYear" min="2025" max="2050" value="2035">
+                    </div>
+                    <button class="button" onclick="app.runMLForecast()">Run Forecast</button>
+                </div>
+                <div id="mlForecastChart" class="chart-container">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+                <div id="mlStats" class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Predicted PD Cases</div>
+                        <div class="stat-value" id="predictedCases">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Expected % Change</div>
+                        <div class="stat-value" id="percentChange">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Model Confidence</div>
+                        <div class="stat-value" id="modelConfidence">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Peak Risk Year</div>
+                        <div class="stat-value" id="peakRiskYear">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Geographic Heatmap -->
+            <div class="section full-width">
+                <h2>🗺️ Geographic Heatmap: Parkinson's Risk Distribution</h2>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="heatmapYear">Year:</label>
+                        <select id="heatmapYear">
+                            <option value="2024">2024</option>
+                            <option value="2030">2030 (Projected)</option>
+                            <option value="2040">2040 (Projected)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="heatmapMetric">Metric:</label>
+                        <select id="heatmapMetric">
+                            <option value="incidence">Incidence Rate</option>
+                            <option value="prevalence">Prevalence</option>
+                            <option value="mortality">Mortality Rate</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="heatmapChart" class="chart-container" style="height: 600px;">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+            </div>
+            
+            <!-- Data Sources -->
+            <div class="section full-width">
+                <h2>📚 Data Sources & Documentation</h2>
+                <div class="data-source">
+                    <p><strong>Population Data:</strong></p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li><a href="https://data.census.gov/profile/Lee_County,_Florida?g=050XX00US12071#health" target="_blank">U.S. Census Bureau – Lee County Profile (ACS)</a></li>
+                        <li><a href="https://www.census.gov/quickfacts/fact/table/leecountyflorida" target="_blank">Census QuickFacts – Lee County</a></li>
+                    </ul>
+                </div>
+                <div class="data-source">
+                    <p><strong>Future Population Projections:</strong></p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li><a href="https://bebr.ufl.edu/wp-content/uploads/2024/01/projections_2024.pdf" target="_blank">BEBR (UF) – County Population Projections 2025–2050</a></li>
+                        <li><a href="https://edr.state.fl.us/Content/conferences/population/ComponentsofChange.pdf" target="_blank">Florida EDR – Components of Change</a></li>
+                    </ul>
+                </div>
+                <div class="data-source">
+                    <p><strong>Parkinson's Disease Data:</strong></p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li><a href="https://wonder.cdc.gov/" target="_blank">CDC WONDER – Mortality Data</a></li>
+                        <li><a href="https://www.flhealthcharts.gov/ChartsDashboards/rdPage.aspx?rdReport=Death.DataViewer&cid=0372" target="_blank">Florida Health Charts – Death Data Viewer</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
