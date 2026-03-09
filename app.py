@@ -228,6 +228,19 @@ def health():
     })
 
 
+@app.route("/api/debug")
+def debug():
+    """Expose training error if models failed to load."""
+    return jsonify({
+        "models_ready": len(MODELS) >= 3,
+        "models_trained": list(MODELS.keys()),
+        "train_error": TRAIN_ERROR,
+        "python_version": sys.version,
+        "cwd": os.getcwd(),
+        "files": os.listdir(os.getcwd()),
+    })
+
+
 @app.route("/api/models/summary")
 def models_summary():
     if not MODELS:
@@ -517,14 +530,23 @@ def _compute_county_total(year):
     )
 
 
-# ── ENTRY POINT ───────────────────────────────────────────────────────────────
+# ── TRAIN ON STARTUP (runs whether invoked via gunicorn or python directly) ───
+TRAIN_ERROR = None
+try:
+    train_all_models()
+except Exception as _e:
+    import traceback
+    TRAIN_ERROR = traceback.format_exc()
+    log.error("=" * 60)
+    log.error("TRAINING FAILED — full traceback:")
+    log.error(TRAIN_ERROR)
+    log.error("=" * 60)
+
+# ── ENTRY POINT (local dev only) ──────────────────────────────────────────────
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--host", default="0.0.0.0")
     args = parser.parse_args()
-
-    train_all_models()
-
     log.info(f"Starting PDPH API on http://{args.host}:{args.port}")
     app.run(host=args.host, port=args.port, debug=False)
