@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Parkinson's Disease Burden Forecast — Lee Health</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  /* Lee Health brand palette */
+  --green:        #006341;   /* primary brand green */
+  --green-dark:   #004d32;   /* header, deep surfaces */
+  --green-mid:    #00784f;   /* hover, active states */
+  --green-light:  #e8f4ef;   /* tinted backgrounds */
+  --green-pale:   #f2f9f5;   /* section headers */
+  --gold:         #b8973a;   /* secondary accent — warm, medical */
+  --gold-light:   #f5edcc;
+
+  /* Lee Health logo blue — palm frond teal-blue */
+  --blue:         #0077a8;   /* logo blue */
+  --blue-dark:    #005f87;   /* darker blue for hover/active */
+  --blue-light:   #e0f2f9;   /* pale blue tint for backgrounds */
+  --blue-mid:     #2496c8;   /* mid-tone for charts/badges */
+
+  --bg:           #f5f7f6;   /* warm off-white page background */
+  --surface:      #ffffff;   /* panel surfaces */
+  --surface2:     #f9fbfa;   /* slightly tinted surface */
+  --border:       #d6e5df;   /* green-tinted border */
+  --border-dark:  #b2cfc5;
+
+  --text:         #1a2e26;   /* near-black with green tint */
+  --text-mid:     #3d5a50;   /* secondary text */
+  --muted:        #7a9b90;   /* tertiary / labels */
+  --muted-light:  #a8c4bc;
+
+  --ok:           #1e7a4a;
+  --warn:         #b8783a;
+  --err:          #c0392b;
+
+  /* Risk tier colors — green-anchored scale */
+  --risk-low:     #2e8b57;
+  --risk-mod:     #b8973a;
+  --risk-high:    #c0602b;
+  --risk-crit:    #8b1a1a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:"Source Sans 3",sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* ── HEADER ─────────────────────────────────────────────────────────────── */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;height:58px;flex-shrink:0;z-index:1000;
+  background:var(--green-dark);
+  border-bottom:3px solid var(--gold);
+  box-shadow:0 2px 12px rgba(0,0,0,.18);
+  position:relative;
+}
+.hdr-left{display:flex;align-items:center;gap:14px;}
+.lh-mark{
+  display:flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:4px;flex-shrink:0;
+  background:white;font-weight:700;font-size:.75rem;
+  color:var(--green-dark);letter-spacing:-.5px;
+  font-family:"Playfair Display",serif;
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+  border-bottom:3px solid var(--blue);
+}
+.hdr-divider{width:1px;height:28px;background:rgba(255,255,255,.2);flex-shrink:0;}
+.hdr-title{
+  font-family:"Playfair Display",serif;font-size:1rem;
+  color:#ffffff;line-height:1.15;letter-spacing:-.01em;
+}
+.hdr-sub{
+  font-family:"IBM Plex Mono",monospace;font-size:.5rem;
+  color:rgba(255,255,255,.5);letter-spacing:.12em;
+  text-transform:uppercase;margin-top:2px;
+}
+.hdr-right{display:flex;align-items:center;gap:14px;}
+.api-status{
+  font-family:"IBM Plex Mono",monospace;font-size:.56rem;
+  padding:3px 10px;border-radius:3px;border:1px solid;transition:all .3s;
+}
+.api-status.ok{
+  background:rgba(0,119,168,.18);
+  border-color:rgba(36,150,200,.5);
+  color:#7dd4f0;
+}
+.api-status.err{
+  background:rgba(192,57,43,.15);border-color:rgba(192,57,43,.4);color:#ffaaaa;
+}
+.api-status.loading{
+  background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.6);
+}
+.yr-val{
+  font-family:"Playfair Display",serif;font-size:1.75rem;
+  font-weight:700;color:#ffffff;line-height:1;
+}
+.yr-lbl{font-size:.5rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;}
+
+/* ── LAYOUT ──────────────────────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:272px 1fr 264px;grid-template-rows:1fr 32px;flex:1;min-height:0;overflow:hidden;}
+.lpanel,.rpanel{
+  overflow-y:auto;overflow-x:hidden;padding:10px 8px;
+  display:flex;flex-direction:column;gap:8px;
+  background:var(--surface2);min-height:0;height:100%;
+}
+.lpanel{border-right:1px solid var(--border);}
+.rpanel{border-left:1px solid var(--border);}
+.lpanel::-webkit-scrollbar,.rpanel::-webkit-scrollbar{width:3px;}
+.lpanel::-webkit-scrollbar-thumb,.rpanel::-webkit-scrollbar-thumb{background:var(--border-dark);border-radius:2px;}
+.mapwrap{position:relative;overflow:hidden;min-height:0;}
+#map{width:100%;height:100%;}
+
+/* ── BOTTOM BAR ──────────────────────────────────────────────────────────── */
+.bbar{
+  grid-column:1/-1;
+  background:var(--green-dark);
+  border-top:3px solid var(--blue);
+  padding:0 16px;display:flex;align-items:center;justify-content:space-between;
+  font-family:"IBM Plex Mono",monospace;font-size:.49rem;
+  color:rgba(255,255,255,.45);min-height:32px;
+}
+
+/* ── SECTIONS ────────────────────────────────────────────────────────────── */
+.sec{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;overflow:visible;flex-shrink:0;
+  box-shadow:0 1px 4px rgba(0,77,50,.06);
+}
+.sec-h{
+  padding:6px 10px;
+  background:var(--green-pale);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  border-radius:6px 6px 0 0;
+}
+.sec-h h3{
+  font-size:.58rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--green);
+}
+.sec.blue-accent .sec-h{background:var(--blue-light);border-bottom-color:rgba(0,119,168,.2);}
+.sec.blue-accent .sec-h h3{color:var(--blue-dark);}
+.sec.blue-accent{border-color:rgba(0,119,168,.22);}
+.sec-h span{
+  font-family:"IBM Plex Mono",monospace;font-size:.53rem;color:var(--muted);
+}
+.sec-b{padding:9px 10px;}
+
+/* ── SLIDER ──────────────────────────────────────────────────────────────── */
+.slider-wrap{padding:4px 0 10px;}
+.yr-slider{
+  -webkit-appearance:none;width:100%;height:3px;border-radius:2px;
+  background:linear-gradient(to right,var(--green) 0%,var(--border) 0%);
+  outline:none;cursor:pointer;
+}
+.yr-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 0 3px white, 0 0 0 4px var(--green);cursor:pointer;
+}
+.yr-lbs{
+  display:flex;justify-content:space-between;margin-top:6px;
+  font-family:"IBM Plex Mono",monospace;font-size:.52rem;color:var(--muted);
+}
+
+/* ── STAT CARDS ──────────────────────────────────────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.sc{
+  background:var(--green-light);
+  border:1px solid var(--border);
+  border-radius:5px;padding:8px 6px;text-align:center;
+}
+.sc.blue{background:var(--blue-light);border-color:rgba(0,119,168,.2);}
+.sv{
+  font-family:"IBM Plex Mono",monospace;font-size:1rem;
+  color:var(--green);display:block;line-height:1;font-weight:500;
+}
+.sc.blue .sv{color:var(--blue-dark);}
+.sl{font-size:.51rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.05em;}
+
+/* ── BUTTONS ─────────────────────────────────────────────────────────────── */
+.btn-row{display:flex;gap:4px;flex-wrap:wrap;}
+.tb{
+  padding:4px 10px;border-radius:4px;
+  border:1px solid var(--border-dark);
+  background:white;color:var(--text-mid);
+  font-family:"Source Sans 3",sans-serif;font-size:.62rem;
+  cursor:pointer;transition:all .15s;font-weight:500;
+}
+.tb:hover{border-color:var(--green-mid);color:var(--green-mid);background:var(--green-pale);}
+.tb.on{
+  border-color:var(--green);color:white;
+  background:var(--green);font-weight:600;
+}
+
+/* ── LEGEND ──────────────────────────────────────────────────────────────── */
+.legend-bar{
+  height:8px;border-radius:4px;
+  background:linear-gradient(to right,var(--risk-low),var(--risk-mod),var(--risk-high),var(--risk-crit));
+  margin:7px 0 3px;border:1px solid var(--border);
+}
+.legend-lbs{
+  display:flex;justify-content:space-between;
+  font-family:"IBM Plex Mono",monospace;font-size:.5rem;color:var(--muted);
+}
+
+/* ── AGE BARS ────────────────────────────────────────────────────────────── */
+.age-bars{display:flex;flex-direction:column;gap:5px;}
+.ab-row{display:flex;align-items:center;gap:5px;}
+.ab-lbl{font-family:"IBM Plex Mono",monospace;font-size:.54rem;color:var(--muted);width:38px;flex-shrink:0;}
+.ab-track{flex:1;height:5px;background:var(--green-light);border-radius:2px;overflow:hidden;}
+.ab-fill{height:100%;border-radius:2px;transition:width .65s cubic-bezier(.4,0,.2,1);}
+.ab-cnt{font-family:"IBM Plex Mono",monospace;font-size:.54rem;color:var(--text-mid);width:38px;text-align:right;flex-shrink:0;}
+
+/* ── MAP CONTROLS ────────────────────────────────────────────────────────── */
+.map-ctrls{position:absolute;top:9px;right:9px;z-index:900;display:flex;flex-direction:column;gap:4px;}
+.mc{
+  background:rgba(255,255,255,.96);
+  border:1px solid var(--border-dark);
+  border-radius:4px;padding:5px 10px;
+  color:var(--text-mid);font-family:"Source Sans 3",sans-serif;font-size:.62rem;
+  cursor:pointer;backdrop-filter:blur(6px);transition:all .15s;
+  box-shadow:0 1px 4px rgba(0,0,0,.1);font-weight:500;
+}
+.mc:hover{border-color:var(--green);color:var(--green);background:var(--green-pale);}
+.mc.on{border-color:var(--blue-dark);color:var(--blue-dark);background:var(--blue-light);}
+.map-footer{
+  position:absolute;bottom:9px;left:50%;transform:translateX(-50%);z-index:900;
+  background:rgba(255,255,255,.96);border:1px solid var(--border-dark);
+  border-radius:5px;padding:5px 14px;font-size:.62rem;
+  pointer-events:none;backdrop-filter:blur(6px);
+  white-space:nowrap;text-align:center;max-width:92%;
+  color:var(--text-mid);box-shadow:0 1px 6px rgba(0,0,0,.1);
+}
+.map-loading{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:950;
+  background:rgba(255,255,255,.97);border:1px solid var(--border);border-radius:8px;
+  padding:20px 32px;text-align:center;font-family:"IBM Plex Mono",monospace;font-size:.7rem;
+  display:none;color:var(--text-mid);box-shadow:0 4px 20px rgba(0,0,0,.12);
+}
+.map-loading.show{display:block;}
+.spin{
+  display:inline-block;width:14px;height:14px;
+  border:2px solid var(--border);border-top:2px solid var(--green);
+  border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── INFO ROWS ───────────────────────────────────────────────────────────── */
+.ir{
+  display:flex;justify-content:space-between;
+  padding:4px 0;border-bottom:1px solid var(--border);font-size:.63rem;
+}
+.ir:last-child{border-bottom:none;}
+.ir span:first-child{color:var(--muted);}
+.ir span:last-child{font-family:"IBM Plex Mono",monospace;color:var(--text-mid);}
+.hl{color:var(--blue-dark)!important;font-weight:600;}
+.up{color:var(--risk-high);}
+
+/* ── CHARTS ──────────────────────────────────────────────────────────────── */
+.ch-wrap{position:relative;height:135px;}
+.ch-wrap-lg{position:relative;height:158px;}
+
+/* ── ZIP LIST ────────────────────────────────────────────────────────────── */
+.zlist{display:flex;flex-direction:column;gap:3px;}
+.zi{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px 6px;border-radius:4px;cursor:pointer;
+  border:1px solid transparent;transition:all .15s;font-size:.63rem;
+}
+.zi:hover,.zi.sel{background:var(--green-light);border-color:var(--border-dark);}
+.zdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-right:5px;}
+.zright{display:flex;align-items:center;gap:5px;}
+.zbar{width:44px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.zfill{height:100%;border-radius:2px;}
+.znum{font-family:"IBM Plex Mono",monospace;font-size:.56rem;width:36px;text-align:right;color:var(--text-mid);}
+
+/* ── MODEL PILLS ─────────────────────────────────────────────────────────── */
+.model-pill{
+  font-family:"IBM Plex Mono",monospace;font-size:.51rem;padding:2px 7px;border-radius:3px;
+  border:1px solid var(--border-dark);
+  background:var(--green-light);color:var(--green);
+  display:inline-block;margin:2px 2px 2px 0;font-weight:500;
+}
+.model-pill.blue{
+  background:var(--blue-light);color:var(--blue-dark);
+  border-color:rgba(0,119,168,.25);
+}
+.stags{display:flex;gap:5px;flex-wrap:wrap;}
+.stag{
+  padding:1px 6px;border-radius:3px;
+  background:rgba(255,255,255,.6);
+  border:1px solid rgba(255,255,255,.25);
+  font-size:.48rem;color:rgba(255,255,255,.55);
+}
+
+/* ── TOOLTIPS ────────────────────────────────────────────────────────────── */
+.leaflet-tooltip{
+  background:white!important;border:1px solid var(--border-dark)!important;
+  color:var(--text)!important;border-radius:5px!important;
+  font-family:"Source Sans 3",sans-serif!important;
+  font-size:.68rem!important;padding:7px 11px!important;
+  box-shadow:0 4px 16px rgba(0,77,50,.15)!important;
+}
+.leaflet-tooltip b{color:var(--green);}
+
+/* ── MODEL STATS ─────────────────────────────────────────────────────────── */
+.model-stat-row{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;}
+.mstat{
+  flex:1;min-width:60px;background:var(--green-light);
+  border:1px solid var(--border);border-radius:4px;
+  padding:6px 7px;text-align:center;
+}
+.mstat.blue{background:var(--blue-light);border-color:rgba(0,119,168,.2);}
+.mstat-v{font-family:"IBM Plex Mono",monospace;font-size:.82rem;color:var(--green);display:block;font-weight:500;}
+.mstat.blue .mstat-v{color:var(--blue-dark);}
+.mstat-l{font-size:.48rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.api-err-banner{
+  background:#fff5f5;border:1px solid rgba(192,57,43,.3);
+  border-radius:5px;padding:8px 10px;font-size:.62rem;
+  color:var(--err);line-height:1.7;margin-bottom:6px;display:none;
+}
+.api-err-banner.show{display:block;}
+
+/* ── PULSE ANIMATION ─────────────────────────────────────────────────────── */
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(0,99,65,.4)}
+  50%{box-shadow:0 0 0 6px rgba(0,99,65,.0)}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-left">
+    <div class="lh-mark">LH</div>
+    <div class="hdr-divider"></div>
+    <div>
+      <div class="hdr-title">Parkinson&#8217;s Disease Burden Forecast &mdash; Lee County, FL</div>
+      <div class="hdr-sub">Lee Health Parkinson Program &bull; Live ML API &bull; ARIMA &bull; Kriging &bull; Ridge &bull; FIPS 12071</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="api-status loading" id="apiStatus">&#9679; CONNECTING&hellip;</div>
+    <div style="text-align:right">
+      <div class="yr-lbl">FORECAST YEAR</div>
+      <div class="yr-val" id="hdrYear">2025</div>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+
+<div class="lpanel">
+  <div class="sec">
+    <div class="sec-h"><h3>&#128197; Forecast Year</h3><span id="slYr">2025</span></div>
+    <div class="sec-b">
+      <div class="slider-wrap">
+        <input type="range" class="yr-slider" id="yrSlider" min="2025" max="2050" value="2025" step="5">
+        <div class="yr-lbs"><span>2025</span><span>2030</span><span>2035</span><span>2040</span><span>2045</span><span>2050</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h3>&#9881; Live ML Model Diagnostics</h3></div>
+    <div class="sec-b">
+      <div class="api-err-banner" id="apiBanner">
+        &#9888; Cannot reach API at <span id="apiUrl">localhost:5000</span>.<br>
+        Start the server: <code>python app.py</code>
+      </div>
+      <div class="model-stat-row" id="modelStats">
+        <div class="mstat"><span class="mstat-v" id="mAic">&mdash;</span><span class="mstat-l">ARIMA AIC</span></div>
+        <div class="mstat blue"><span class="mstat-v" id="mPhi">&mdash;</span><span class="mstat-l">AR(&phi;)</span></div>
+        <div class="mstat"><span class="mstat-v" id="mR2">&mdash;</span><span class="mstat-l">Ridge R&sup2;</span></div>
+        <div class="mstat blue"><span class="mstat-v" id="mLam">&mdash;</span><span class="mstat-l">Ridge &lambda;</span></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;">
+        <span class="model-pill">ARIMA(1,1,0)</span>
+        <span class="model-pill blue">Kriging exp.</span>
+        <span class="model-pill" id="ridgePill">Ridge &lambda;=?</span>
+      </div>
+      <div style="font-size:.58rem;color:var(--text-mid);line-height:1.75;padding:6px 8px;background:var(--green-pale);border-radius:4px;border:1px solid var(--border);" id="modelDetails">
+        Awaiting API&hellip;
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h3>&#128202; County Statistics</h3><span id="statYr">2025</span></div>
+    <div class="sec-b">
+      <div class="stat-grid">
+        <div class="sc blue"><span class="sv" id="sTot">&mdash;</span><div class="sl">BEBR Pop</div></div>
+        <div class="sc"><span class="sv" id="sCases">&mdash;</span><div class="sl">PD Cases</div></div>
+        <div class="sc blue"><span class="sv" id="sAamr">&mdash;</span><div class="sl">AAMR/100K</div></div>
+        <div class="sc"><span class="sv" id="sGrowth">&mdash;</span><div class="sl">vs 2025</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h3>&#128506; Display Mode</h3></div>
+    <div class="sec-b" style="display:flex;flex-direction:column;gap:8px;">
+      <div class="btn-row" id="layerBtns">
+        <button class="tb on" data-layer="kriging">&#128293; Kriging</button>
+        <button class="tb" data-layer="heat">&#127777; Heat</button>
+        <button class="tb" data-layer="bubble">&#11093; Bubble</button>
+      </div>
+      <div class="btn-row" id="riskBtns">
+        <button class="tb on" data-risk="all">All</button>
+        <button class="tb" data-risk="Critical">&#128308; Critical</button>
+        <button class="tb" data-risk="High">&#128992; High</button>
+        <button class="tb" data-risk="Moderate">&#128309; Moderate</button>
+        <button class="tb" data-risk="Low">&#128994; Low</button>
+      </div>
+      <div><div class="legend-bar"></div>
+        <div class="legend-lbs"><span>Low</span><span>Moderate</span><span>High</span><span>Critical</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h3>&#128101; PD Cases by Age Band</h3></div>
+    <div class="sec-b"><div class="age-bars" id="ageBars">
+      <div style="color:var(--muted);font-size:.62rem;">Loading from API&hellip;</div>
+    </div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h3>&#128218; Data Sources</h3></div>
+    <div class="sec-b" style="font-size:.6rem;line-height:1.85;color:var(--muted);">
+      <div>&#8226; CDC WONDER G20 AAMR 1999&#8211;2022 (ICD-10)</div>
+      <div>&#8226; BEBR/UF Bulletin 198 (Jan 2024) Medium</div>
+      <div>&#8226; BEBR/UF Bulletin 199 (Nov 2024) Age/Sex</div>
+      <div>&#8226; ACS 2019&#8211;2023 5yr ZIP 65+ estimates</div>
+      <div>&#8226; Zhang et al. 2010 (Medicare prevalence)</div>
+      <div>&#8226; Willis et al. 2022 (npj Parkinson&#8217;s Dis.)</div>
+      <div>&#8226; Weresh et al. 2025 (ARIMA, PMC11755521)</div>
+    </div>
+  </div>
+</div>
+
+<div class="mapwrap">
+  <div id="map"></div>
+  <div class="map-loading" id="mapLoading">
+    <span class="spin"></span>Calling ML API&hellip;
+  </div>
+  <div class="map-ctrls">
+    <button class="mc" id="btnDark">&#127761; Dark</button>
+    <button class="mc on" id="btnStreet">&#127970; Street</button>
+    <button class="mc" id="btnSat">&#128752; Sat</button>
+  </div>
+  <div class="map-footer" id="mapFooter">Awaiting live Kriging prediction from API&hellip;</div>
+</div>
+
+<div class="rpanel">
+  <div class="sec">
+    <div class="sec-h"><h3>&#128205; Selected Zone</h3></div>
+    <div class="sec-b" id="zoneDetail">
+      <div style="color:var(--muted);font-size:.63rem;text-align:center;padding:12px 0;line-height:1.9;">
+        Click any ZIP zone on the map<br>to view live ML-predicted PD burden.
+      </div>
+    </div>
+  </div>
+
+  <div class="sec blue-accent">
+    <div class="sec-h"><h3>&#128200; ARIMA Forecast + 80% CI</h3></div>
+    <div class="sec-b"><div class="ch-wrap-lg"><canvas id="arimaChart"></canvas></div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h3>&#128308; Highest Burden ZIPs</h3><span id="topYr">2025</span></div>
+    <div class="sec-b"><div class="zlist" id="zipList">
+      <div style="color:var(--muted);font-size:.62rem;">Loading from API&hellip;</div>
+    </div></div>
+  </div>
+
+  <div class="sec blue-accent">
+    <div class="sec-h"><h3>&#128208; BEBR Pop + ARIMA Rate</h3></div>
+    <div class="sec-b"><div class="ch-wrap"><canvas id="scalingChart"></canvas></div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h3>&#128218; Model Architecture</h3></div>
+    <div class="sec-b" style="font-size:.6rem;line-height:1.85;color:var(--muted);">
+      <div>&#8226; ARIMA(1,1,0): MLE via scipy.optimize L-BFGS-B</div>
+      <div>&#8226; Kriging: WLS variogram + Kriging system numpy</div>
+      <div>&#8226; Ridge: LOO-CV hat-matrix lambda selection</div>
+      <div>&#8226; All models train on server startup in real-time</div>
+      <div>&#8226; Every map update = live API call to Flask server</div>
+      <div>&#8226; Forecasts computed on-demand, not cached</div>
+    </div>
+  </div>
+</div>
+
+<div class="bbar">
+  <div>Lee Health Parkinson Program &#183; Lee County FL &#183; FIPS 12071 &#183; Live Flask API &#183; ARIMA(1,1,0) + Kriging + Ridge</div>
+  <div class="stags">
+    <span class="stag">CDC WONDER 1999&#8211;2022</span>
+    <span class="stag">BEBR 2024</span>
+    <span class="stag">ACS 2023</span>
+    <span class="stag">Live ML API</span>
+  </div>
+  <div>&#9888; Public health planning only &#8212; not diagnostic.</div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function() {
+"use strict";
+
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+// ── API CONFIGURATION ────────────────────────────────────────────
+// When running locally:  set to "http://localhost:5000/api"
+// After deploying to Render: set to "https://YOUR-APP-NAME.onrender.com/api"
+var API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ? "http://localhost:5000/api"
+  : "https://pdph-api.onrender.com/api";  // ← UPDATE THIS after Render deploy
+
+var AGE_BANDS = [
+  {band:"50-54", pct:0.067, color:"#2471a3"},
+  {band:"55-59", pct:0.076, color:"#2e86c1"},
+  {band:"60-64", pct:0.084, color:"#f39c12"},
+  {band:"65-69", pct:0.087, color:"#e07339"},
+  {band:"70-74", pct:0.086, color:"#e74c3c"},
+  {band:"75-79", pct:0.071, color:"#c0392b"},
+  {band:"80-84", pct:0.044, color:"#922b21"},
+  {band:"85+",   pct:0.037, color:"#641e16"}
+];
+
+var ZHANG_RATES = {
+  "50-54":500, "55-59":1000, "60-64":2000, "65-69":5540,
+  "70-74":10800, "75-79":16400, "80-84":24400, "85+":29490
+};
+
+var TILES = {
+  dark:   "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+  street: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+  sat:    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+var currentYear  = 2025;
+var activeLayer  = "kriging";
+var activeRisk   = "all";
+var selectedZip  = null;
+
+// API data cache (invalidated on year change)
+var cache = {};
+var apiReady = false;
+var zipData  = [];  // populated from /api/zips
+
+var map, tileLayer;
+var krigingMarkers = [];
+var heatMarkers    = [];
+var bubbleMarkers  = [];
+var hitMarkers     = [];
+var arimaChart, scalingChart;
+
+// ── API HELPERS ───────────────────────────────────────────────────────────────
+function apiFetch(endpoint, cb) {
+  var url = API_BASE + endpoint;
+  var ckey = endpoint;
+  if (cache[ckey]) { cb(null, cache[ckey]); return; }
+  
+  fetch(url)
+    .then(function(r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      cache[ckey] = data;
+      cb(null, data);
+    })
+    .catch(function(err) { cb(err, null); });
+}
+
+function invalidateCache() {
+  cache = {};
+}
+
+function setApiStatus(state, msg) {
+  var el = document.getElementById("apiStatus");
+  el.className = "api-status " + state;
+  el.textContent = msg;
+}
+
+function showMapLoading(show) {
+  document.getElementById("mapLoading").className = "map-loading" + (show ? " show" : "");
+}
+
+// ── INIT SEQUENCE ─────────────────────────────────────────────────────────────
+function init() {
+  initMap();
+  
+  setApiStatus("loading", "\u25CF CONNECTING\u2026");
+  
+  // 1. Check health
+  apiFetch("/health", function(err, data) {
+    if (err || !data || !data.models_ready) {
+      setApiStatus("err", "\u25CF API OFFLINE");
+      document.getElementById("apiBanner").classList.add("show");
+      document.getElementById("mapFooter").textContent = "API offline \u2014 start: python app.py";
+      return;
+    }
+    
+    setApiStatus("ok", "\u25CF API LIVE");
+    document.getElementById("apiBanner").classList.remove("show");
+    apiReady = true;
+    
+    // 2. Load model diagnostics
+    apiFetch("/models/summary", function(err, data) {
+      if (!err && data) updateModelDiagnostics(data);
+    });
+    
+    // 3. Load forecast series for charts
+    apiFetch("/forecast/series", function(err, data) {
+      if (!err && data) initCharts(data);
+    });
+    
+    // 4. Load ZIP data for initial year
+    loadZipsAndRender();
+  });
+  
+  initControls();
+}
+
+// ── MODEL DIAGNOSTICS ─────────────────────────────────────────────────────────
+function updateModelDiagnostics(data) {
+  var a = data.arima, r = data.ridge, k = data.kriging;
+  
+  document.getElementById("mAic").textContent = a.aic.toFixed(2);
+  document.getElementById("mPhi").textContent = a.phi.toFixed(4);
+  document.getElementById("mR2").textContent  = r.r2_train.toFixed(3);
+  document.getElementById("mLam").textContent = r.lambda_selected;
+  document.getElementById("ridgePill").textContent = "Ridge \u03bb=" + r.lambda_selected;
+  
+  document.getElementById("modelDetails").innerHTML =
+    "ARIMA: phi=" + a.phi + " &sigma;&sup2;=" + a.sigma2 + " n=" + a.n_obs + " obs<br>" +
+    "Kriging: nugget=" + k.nugget.toFixed(5) + " sill=" + k.sill.toFixed(5) + " range=" + k.range_param.toFixed(3) + "&deg;<br>" +
+    "Ridge: LOO-CV &lambda;=" + r.lambda_selected + " R&sup2;=" + r.r2_train + " RMSE=" + r.rmse_train + "<br>" +
+    "Training data: CDC WONDER FL G20 AAMR, " + data.training_data.n_observations + " obs (1999&#8211;2022)";
+}
+
+// ── ZIP DATA LOAD + RENDER ────────────────────────────────────────────────────
+function loadZipsAndRender() {
+  if (!apiReady) return;
+  showMapLoading(true);
+  
+  apiFetch("/zips?year=" + currentYear, function(err, data) {
+    showMapLoading(false);
+    if (err || !data) {
+      document.getElementById("mapFooter").textContent = "API error \u2014 " + (err ? err.message : "no data");
+      return;
+    }
+    
+    zipData = data.zips;
+    document.getElementById("sTot").textContent    = Math.round(data.bebr_pop / 1000) + "K";
+    document.getElementById("sCases").textContent  = data.total_cases.toLocaleString();
+    document.getElementById("hdrYear").textContent = String(currentYear);
+    document.getElementById("slYr").textContent    = String(currentYear);
+    document.getElementById("statYr").textContent  = String(currentYear);
+    document.getElementById("topYr").textContent   = String(currentYear);
+    
+    // Load ARIMA for this year for AAMR + growth
+    apiFetch("/forecast?year=" + currentYear, function(err2, fc) {
+      if (!err2 && fc) {
+        document.getElementById("sAamr").textContent   = fc.aamr_forecast.toFixed(1);
+        document.getElementById("sGrowth").textContent =
+          currentYear === 2025 ? "Baseline" : "+" + fc.county_cases + " (" + Math.round((fc.county_cases / data.total_cases - 1) * 100) + "%)";
+      }
+    });
+    
+    updateAgeBars(data);
+    buildHitMarkers();
+    renderAllLayers();
+    updateZipList();
+    
+    // Re-select current zip if set
+    if (selectedZip) {
+      var found = zipData.find(function(z) { return z.zip === selectedZip.zip; });
+      if (found) { selectedZip = found; updateZoneDetail(found); }
+    }
+    
+    document.getElementById("mapFooter").textContent =
+      "Kriging surface \u2014 live prediction from ML API \u2014 " + currentYear;
+  });
+}
+
+// ── KRIGING LAYER (from API) ──────────────────────────────────────────────────
+function renderKriging() {
+  clearArr(krigingMarkers);
+  if (activeLayer !== "kriging") return;
+  
+  showMapLoading(true);
+  apiFetch("/kriging?year=" + currentYear + "&n=28", function(err, data) {
+    showMapLoading(false);
+    if (err || !data) return;
+    
+    var grid   = data.grid;
+    var lats   = data.lats;
+    var lngs   = data.lngs;
+    var n      = data.n_grid;
+    var latStep = (data.lat_max - data.lat_min) / (n - 1);
+    var lngStep = (data.lng_max - data.lng_min) / (n - 1);
+    var cellR   = Math.max(latStep, lngStep) * 111000 * 0.78;
+    
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < n; j++) {
+        var val = grid[i][j];
+        var lat = lats[i];
+        var lng = lngs[j];
+        if (lat < 26.26 || lat > 26.84 || lng < -82.40 || lng > -81.50) continue;
+        
+        var rgb = rampRGB(val);
+        var fillColor = "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+        var alpha = val * 0.65 + 0.05;
+        
+        var c = L.circle([lat, lng], {
+          radius: cellR, fillColor: fillColor,
+          fillOpacity: alpha, color: "transparent",
+          weight: 0, interactive: false
+        }).addTo(map);
+        krigingMarkers.push(c);
+      }
+    }
+    
+    document.getElementById("mapFooter").textContent =
+      "Live Kriging (" + n + "\u00d7" + n + " grid) \u2014 ARIMA\u00d7" + data.arima_factor.toFixed(3) + " \u2014 " + currentYear;
+  });
+}
+
+// ── HEAT / BUBBLE LAYERS (from cached ZIP data) ───────────────────────────────
+function renderHeat() {
+  clearArr(heatMarkers);
+  if (activeLayer !== "heat" || !zipData.length) return;
+  
+  var maxC = Math.max.apply(null, zipData.map(function(z) { return z.cases; })) || 1;
+  
+  zipData.forEach(function(z) {
+    var risk = getRisk(z.cases);
+    if (activeRisk !== "all" && risk.tier !== activeRisk) return;
+    var t   = Math.min(z.cases / maxC, 1);
+    var rgb = rampRGB(t);
+    var col = "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+    var r   = 900 + Math.sqrt(z.pop) * 40;
+    
+    heatMarkers.push(
+      L.circle([z.lat, z.lng], {radius: r*(1+t*1.3), fillColor: col, fillOpacity: 0.18, color: "transparent", weight: 0, interactive: false}).addTo(map),
+      L.circle([z.lat, z.lng], {radius: r*0.52, fillColor: col, fillOpacity: 0.72, color: col, weight: 1, interactive: false}).addTo(map)
+    );
+  });
+}
+
+function renderBubble() {
+  clearArr(bubbleMarkers);
+  if (activeLayer !== "bubble" || !zipData.length) return;
+  
+  zipData.forEach(function(z) {
+    var risk = getRisk(z.cases);
+    if (activeRisk !== "all" && risk.tier !== activeRisk) return;
+    var r = Math.max(5, Math.min(30, 4 + Math.sqrt(z.cases) * 0.8));
+    bubbleMarkers.push(
+      L.circleMarker([z.lat, z.lng], {radius: r, fillColor: risk.color, fillOpacity: 0.85, color: "#fff", weight: 1, interactive: false}).addTo(map)
+    );
+  });
+}
+
+function renderAllLayers() {
+  clearArr(krigingMarkers);
+  clearArr(heatMarkers);
+  clearArr(bubbleMarkers);
+  renderKriging();
+  renderHeat();
+  renderBubble();
+}
+
+// ── HIT MARKERS ───────────────────────────────────────────────────────────────
+function buildHitMarkers() {
+  clearArr(hitMarkers);
+  if (!zipData.length) return;
+  
+  zipData.forEach(function(z) {
+    var risk = getRisk(z.cases);
+    var m = L.circleMarker([z.lat, z.lng], {
+      radius: 14, fillOpacity: 0, opacity: 0,
+      fillColor: "transparent", color: "transparent"
+    }).addTo(map);
+    
+    m.bindTooltip(
+      "<b>" + z.name + "</b> (" + z.zip + ")<br>" +
+      "Live ML Cases: <b>" + z.cases.toLocaleString() + "</b><br>" +
+      "65+: " + Math.round(z.pct65 * 100) + "% &bull; Risk: <b>" + risk.tier + "</b><br>" +
+      "Ridge score: " + (z.risk_score * 100).toFixed(0) + "/100",
+      {className: "leaflet-tooltip"}
+    );
+    
+    (function(zip) { m.on("click", function() { selectZip(zip); }); }(z));
+    hitMarkers.push(m);
+  });
+}
+
+// ── SELECTION ─────────────────────────────────────────────────────────────────
+function selectZip(z) {
+  selectedZip = z;
+  updateZoneDetail(z);
+  map.flyTo([z.lat, z.lng], 13, {duration: 1.1});
+  updateZipList();
+  
+  // Fetch forecast for this zip's year range from API
+  document.getElementById("mapFooter").textContent =
+    z.name + " (" + z.zip + ") \u2014 " + z.cases.toLocaleString() + " est. cases \u2014 " + getRisk(z.cases).tier + " Risk \u2014 live ML";
+}
+
+function updateZoneDetail(z) {
+  var risk = getRisk(z.cases);
+  
+  // Fetch 2025 and 2050 values for growth calculation
+  var base25 = 0, proj50 = 0;
+  
+  // Get from a quick API call for 2025 and 2050 data if we have it cached
+  var zip2025 = (cache["/zips?year=2025"] || {}).zips;
+  var zip2050 = (cache["/zips?year=2050"] || {}).zips;
+  if (zip2025) { var r = zip2025.find(function(x){ return x.zip === z.zip; }); if(r) base25 = r.cases; }
+  if (zip2050) { var r = zip2050.find(function(x){ return x.zip === z.zip; }); if(r) proj50 = r.cases; }
+  
+  var growthStr = (base25 > 0 && proj50 > 0)
+    ? '<span class="up">&#9650; ' + Math.round((proj50/base25 - 1) * 100) + "%</span>"
+    : '<span style="color:var(--muted)">Load 2050 to see</span>';
+  
+  var fc = cache["/forecast?year=" + currentYear];
+  var afStr = fc ? fc.arima_factor.toFixed(4) : "fetching&hellip;";
+  
+  document.getElementById("zoneDetail").innerHTML =
+    row("ZIP / Community", z.zip + " &ndash; " + z.name) +
+    row("Population (" + currentYear + ")", z.pop.toLocaleString()) +
+    row("Est. 65+ Pop", z.pop65.toLocaleString() + " (" + Math.round(z.pct65 * 100) + "%)") +
+    row("Est. PD Cases", '<span class="hl">' + z.cases.toLocaleString() + "</span>") +
+    row("Risk Tier", '<span style="color:' + risk.txt + ';font-weight:600">' + risk.tier + "</span>") +
+    row("Ridge Risk Score", (z.risk_score * 100).toFixed(1) + "/100") +
+    row("ARIMA Factor", "&times;" + afStr) +
+    row("Coastal Adj.", z.coastal ? "&#10003; +12% (Willis 2022)" : "&mdash;") +
+    row("2025&#x2192;2050 Growth", growthStr) +
+    '<div style="margin-top:7px;padding:6px;background:rgba(24,32,48,.6);border-radius:4px;font-size:.57rem;color:var(--muted);line-height:1.7;">' +
+    'Live predictions from Flask API. ARIMA(1,1,0) MLE &bull; Kriging exponential variogram &bull; Ridge LOO-CV &lambda;-selection.' +
+    '</div>';
+}
+
+function row(label, val) {
+  return '<div class="ir"><span>' + label + '</span><span>' + val + '</span></div>';
+}
+
+// ── ZIP LIST ──────────────────────────────────────────────────────────────────
+function updateZipList() {
+  if (!zipData.length) return;
+  var sorted = zipData.slice().sort(function(a, b) { return b.cases - a.cases; }).slice(0, 10);
+  var maxC = sorted[0].cases || 1;
+  var html = "";
+  sorted.forEach(function(z) {
+    var risk = getRisk(z.cases);
+    if (activeRisk !== "all" && risk.tier !== activeRisk) return;
+    var sel = (selectedZip && selectedZip.zip === z.zip) ? " sel" : "";
+    var pct = Math.round(z.cases / maxC * 100);
+    html +=
+      '<div class="zi' + sel + '" onclick="selectZipByCode(\\\'' + z.zip + '\\\')">' +
+      '<div style="display:flex;align-items:center">' +
+      '<div class="zdot" style="background:' + risk.dot + '"></div>' +
+      '<div><div style="font-weight:500;color:var(--text)">' + z.zip + '</div>' +
+      '<div style="font-size:.54rem;color:var(--muted)">' + z.name.substring(0, 18) + '</div></div></div>' +
+      '<div class="zright">' +
+      '<div class="zbar"><div class="zfill" style="width:' + pct + '%;background:' + risk.color + '"></div></div>' +
+      '<span class="znum" style="color:' + risk.stroke + '">' + z.cases.toLocaleString() + '</span>' +
+      '</div></div>';
+  });
+  document.getElementById("zipList").innerHTML = html ||
+    '<div style="color:var(--muted);font-size:.63rem;padding:8px">No zones match filter</div>';
+}
+
+window.selectZipByCode = function(code) {
+  var z = zipData.find(function(x) { return x.zip === code; });
+  if (z) selectZip(z);
+};
+
+// ── AGE BARS ──────────────────────────────────────────────────────────────────
+function updateAgeBars(data) {
+  var af = data.arima_factor || 1.0;
+  var pop = data.bebr_pop;
+  
+  var vals = AGE_BANDS.map(function(a) {
+    return Math.round(pop * a.pct * ZHANG_RATES[a.band] / 100000 * af);
+  });
+  var mx = Math.max.apply(null, vals) || 1;
+  
+  document.getElementById("ageBars").innerHTML = AGE_BANDS.map(function(a, i) {
+    return '<div class="ab-row">' +
+      '<span class="ab-lbl">' + a.band + '</span>' +
+      '<div class="ab-track"><div class="ab-fill" style="width:' + Math.round(vals[i]/mx*100) + '%;background:' + a.color + '"></div></div>' +
+      '<span class="ab-cnt">' + vals[i].toLocaleString() + '</span>' +
+      '</div>';
+  }).join("");
+}
+
+// ── CHARTS (from API /forecast/series) ───────────────────────────────────────
+function initCharts(data) {
+  var hYrs  = data.historical_years;
+  var hVals = data.historical_aamr;
+  var fYrs  = data.forecast_years;
+  var fVals = data.forecast_aamr;
+  var ciLo  = data.ci_lower_80;
+  var ciHi  = data.ci_upper_80;
+  var fitted = data.fitted_values;
+  var allYrs = hYrs.concat(fYrs);
+  var labels = allYrs.map(function(y) { return y % 4 === 0 ? String(y) : ""; });
+  var nH = hYrs.length, nF = fYrs.length;
+
+  arimaChart = new Chart(document.getElementById("arimaChart").getContext("2d"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {data: new Array(nH).fill(null).concat(ciLo), borderColor: "transparent", backgroundColor: "transparent", fill: false, tension: 0.4, pointRadius: 0, borderWidth: 0},
+        {label: "CI Upper (80%)", data: new Array(nH).fill(null).concat(ciHi), borderColor: "transparent", backgroundColor: "rgba(0,119,168,0.10)", fill: "-1", tension: 0.4, pointRadius: 0, borderWidth: 0},
+        {label: "ARIMA(1,1,0) Forecast", data: new Array(nH).fill(null).concat(fVals), borderColor: "#0077a8", backgroundColor: "transparent", borderWidth: 2, tension: 0.4, pointRadius: 0, borderDash: [5,3]},
+        {label: "CDC WONDER AAMR", data: hVals.concat(new Array(nF).fill(null)), borderColor: "#f0a33a", backgroundColor: "rgba(184,151,58,0.06)", borderWidth: 2.5, fill: "origin", tension: 0.3, pointRadius: 0},
+        {label: "ARIMA Fitted", data: fitted.concat(new Array(nF).fill(null)), borderColor: "#26c6c6", backgroundColor: "transparent", borderWidth: 1, tension: 0.3, pointRadius: 0, borderDash: [2,2]}
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {labels: {color: "#7a9b90", font: {size: 8.5}, filter: function(item) { return item.datasetIndex >= 2; }}},
+        tooltip: {enabled: true}
+      },
+      scales: {
+        x: {ticks: {color: "#7a9b90", font: {family: "DM Mono", size: 8}, maxTicksLimit: 12}, grid: {color: "#d6e5df"}},
+        y: {ticks: {color: "#7a9b90", font: {family: "DM Mono", size: 8}}, grid: {color: "#d6e5df"},
+            title: {display: true, text: "AAMR/100K (all ages)", color: "#7a9b90", font: {size: 8}}}
+      }
+    }
+  });
+
+  // Build scaling chart from forecast series
+  var PROJ_YEARS = [2025, 2030, 2035, 2040, 2045, 2050];
+  var bebr = {2025:834,2030:908,2035:978,2040:1041,2045:1095,2050:1141};
+  var baseAamr = hVals[hVals.length - 1];
+  
+  var popVals   = PROJ_YEARS.map(function(y) { return bebr[y]; });
+  var scaleVals = PROJ_YEARS.map(function(y) {
+    var idx = fYrs.indexOf(y);
+    return idx >= 0 ? parseFloat((fVals[idx] / baseAamr).toFixed(2)) : 1.0;
+  });
+
+  scalingChart = new Chart(document.getElementById("scalingChart").getContext("2d"), {
+    type: "bar",
+    data: {
+      labels: PROJ_YEARS.map(String),
+      datasets: [
+        {label: "BEBR Pop (K)", data: popVals, backgroundColor: "rgba(0,119,168,.2)", borderColor: "#4a90e2", borderWidth: 1, yAxisID: "y"},
+        {label: "ARIMA Rate \u00d7", data: scaleVals, type: "line", borderColor: "#e05a2b", backgroundColor: "transparent", borderWidth: 2, pointRadius: 3, pointBackgroundColor: "#e05a2b", yAxisID: "y2"}
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {legend: {labels: {color: "#7a9b90", font: {size: 8}}}},
+      scales: {
+        x: {ticks: {color: "#7a9b90", font: {family: "DM Mono", size: 9}}, grid: {color: "#d6e5df"}},
+        y: {ticks: {color: "#7a9b90", font: {family: "DM Mono", size: 9}, callback: function(v) { return v + "K"; }}, grid: {color: "#d6e5df"}, position: "left"},
+        y2: {ticks: {color: "#c0602b", font: {family: "DM Mono", size: 9}, callback: function(v) { return "\u00d7" + v.toFixed(1); }}, grid: {display: false}, position: "right"}
+      }
+    }
+  });
+}
+
+// ── MAP ───────────────────────────────────────────────────────────────────────
+function initMap() {
+  if (typeof L === "undefined") {
+    console.error("Leaflet not loaded. Check CDN connectivity.");
+    document.getElementById("mapFooter").textContent = "Map library failed to load — check internet connection.";
+    return;
+  }
+  map = L.map("map", {center: [26.52, -81.95], zoom: 10, zoomControl: true, attributionControl: false});
+  tileLayer = L.tileLayer(TILES.street, {maxZoom: 19}).addTo(map);
+}
+
+// ── UTILITIES ─────────────────────────────────────────────────────────────────
+function clearArr(arr) {
+  if (!map) { arr.length = 0; return; }
+  arr.forEach(function(m) { try { map.removeLayer(m); } catch(e) {} });
+  arr.length = 0;
+}
+
+function getRisk(cases) {
+  if (cases >= 800) return {tier:"Critical", color:"#c0392b", dot:"#e74c3c", txt:"#ff6b6b", stroke:"#ff6b6b"};
+  if (cases >= 250) return {tier:"High",     color:"#d4691e", dot:"#f39c12", txt:"#f0a33a", stroke:"#f0a33a"};
+  if (cases >= 80)  return {tier:"Moderate", color:"#2471a3", dot:"#3498db", txt:"#5dade2", stroke:"#5dade2"};
+  return                   {tier:"Low",      color:"#1e8449", dot:"#2ecc71", txt:"#58d68d", stroke:"#58d68d"};
+}
+
+function rampRGB(t) {
+  // Low: Lee Health green (#006341) → Mid: gold (#b8973a) → High: crimson (#8b1a1a)
+  if (t < 0.33) { var s=t/0.33;
+    return [Math.round(0+s*184), Math.round(99+s*48), Math.round(65-s*7)]; }
+  else if (t < 0.66) { var s=(t-0.33)/0.33;
+    return [Math.round(184+s*8), Math.round(147-s*51), Math.round(58-s*31)]; }
+  else { var s=(t-0.66)/0.34;
+    return [Math.round(192-s*53), Math.round(96-s*70), Math.round(27-s*16)]; }
+}
+
+// ── CONTROLS ──────────────────────────────────────────────────────────────────
+function initControls() {
+  var slider = document.getElementById("yrSlider");
+  var debounceTimer = null;
+  
+  slider.addEventListener("input", function() {
+    var val = Math.round(parseInt(this.value, 10) / 5) * 5;
+    val = Math.max(2025, Math.min(2050, val));
+    this.value = val;
+    currentYear = val;
+    var pct = (currentYear - 2025) / 25 * 100;
+    this.style.background = "linear-gradient(to right,#e05a2b " + pct + "%,#182030 " + pct + "%)";
+    document.getElementById("hdrYear").textContent = String(currentYear);
+    document.getElementById("slYr").textContent    = String(currentYear);
+    
+    // Debounce API calls on slider drag
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function() {
+      invalidateCache();
+      loadZipsAndRender();
+    }, 280);
+  });
+
+  document.getElementById("layerBtns").addEventListener("click", function(e) {
+    var btn = e.target;
+    if (!btn.dataset || !btn.dataset.layer) return;
+    document.querySelectorAll("#layerBtns .tb").forEach(function(b) { b.classList.remove("on"); });
+    btn.classList.add("on");
+    activeLayer = btn.dataset.layer;
+    renderAllLayers();
+  });
+
+  document.getElementById("riskBtns").addEventListener("click", function(e) {
+    var btn = e.target;
+    if (!btn.dataset || !btn.dataset.risk) return;
+    document.querySelectorAll("#riskBtns .tb").forEach(function(b) { b.classList.remove("on"); });
+    btn.classList.add("on");
+    activeRisk = btn.dataset.risk;
+    renderAllLayers();
+    updateZipList();
+  });
+
+  var tileMap = {btnDark: "dark", btnStreet: "street", btnSat: "sat"};
+  ["btnDark", "btnStreet", "btnSat"].forEach(function(id) {
+    document.getElementById(id).addEventListener("click", function() {
+      tileLayer.setUrl(TILES[tileMap[id]]);
+      ["btnDark","btnStreet","btnSat"].forEach(function(b) { document.getElementById(b).classList.remove("on"); });
+      document.getElementById(id).classList.add("on");
+    });
+  });
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+window.addEventListener("load", init);
+
+}());
+</script>
+</body>
+</html>
