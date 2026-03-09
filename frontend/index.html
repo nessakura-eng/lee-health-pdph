@@ -340,7 +340,7 @@ header{
     <div class="hdr-divider"></div>
     <div>
       <div class="hdr-title">Parkinson&#8217;s Disease Burden Forecast &mdash; Lee County, FL</div>
-      <div class="hdr-sub">Lee Health Parkinson Program &bull; Live ML API &bull; ARIMA &bull; Kriging &bull; Ridge &bull; FIPS 12071</div>
+      <div class="hdr-sub">Lee Health Parkinson Program &bull; Live Predictive Analytics &bull; ARIMA (Statistical) &bull; Kriging (Geostatistical) &bull; Ridge (ML) &bull; FIPS 12071</div>
     </div>
   </div>
   <div class="hdr-right">
@@ -366,7 +366,7 @@ header{
   </div>
 
   <div class="sec">
-    <div class="sec-h"><h3>&#9881; Live ML Model Diagnostics</h3></div>
+    <div class="sec-h"><h3>&#9881; Live Model Diagnostics</h3></div>
     <div class="sec-b">
       <div class="api-err-banner" id="apiBanner">
         &#9888; Cannot reach API at <span id="apiUrl">localhost:5000</span>.<br>
@@ -379,9 +379,9 @@ header{
         <div class="mstat blue"><span class="mstat-v" id="mLam">&mdash;</span><span class="mstat-l">Ridge &lambda;</span></div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;">
-        <span class="model-pill">ARIMA(1,1,0)</span>
-        <span class="model-pill blue">Kriging exp.</span>
-        <span class="model-pill" id="ridgePill">Ridge &lambda;=?</span>
+        <span class="model-pill">ARIMA &mdash; Statistical</span>
+        <span class="model-pill blue">Kriging &mdash; Geostatistical</span>
+        <span class="model-pill" id="ridgePill">Ridge &mdash; ML</span>
       </div>
       <div style="font-size:.58rem;color:var(--text-mid);line-height:1.75;padding:6px 8px;background:var(--green-pale);border-radius:4px;border:1px solid var(--border);" id="modelDetails">
         Awaiting API&hellip;
@@ -486,18 +486,18 @@ header{
   <div class="sec">
     <div class="sec-h"><h3>&#128218; Model Architecture</h3></div>
     <div class="sec-b" style="font-size:.6rem;line-height:1.85;color:var(--muted);">
-      <div>&#8226; ARIMA(1,1,0): MLE via scipy.optimize L-BFGS-B</div>
-      <div>&#8226; Kriging: WLS variogram + Kriging system numpy</div>
-      <div>&#8226; Ridge: LOO-CV hat-matrix lambda selection</div>
-      <div>&#8226; All models train on server startup in real-time</div>
+      <div>&#8226; ARIMA(1,1,0): classical time-series statistics (MLE)</div>
+      <div>&#8226; Kriging: geostatistical spatial interpolation (WLS)</div>
+      <div>&#8226; Ridge Regression: machine learning (LOO-CV &lambda;-selection)</div>
+      <div>&#8226; All models fit on server startup in real-time</div>
       <div>&#8226; Every map update = live API call to Flask server</div>
-      <div>&#8226; Forecasts computed on-demand, not cached</div>
+      <div>&#8226; Predictions computed on-demand, not cached</div>
     </div>
   </div>
 </div>
 
 <div class="bbar">
-  <div>Lee Health Parkinson Program &#183; Lee County FL &#183; FIPS 12071 &#183; Live Flask API &#183; ARIMA(1,1,0) + Kriging + Ridge</div>
+  <div>Lee Health Parkinson Program &#183; Lee County FL &#183; FIPS 12071 &#183; Live Flask API &#183; ARIMA (statistical) + Kriging (geostatistical) + Ridge (ML)</div>
   <div class="stags">
     <span class="stag">CDC WONDER 1999&#8211;2022</span>
     <span class="stag">BEBR 2024</span>
@@ -798,7 +798,7 @@ function buildHitMarkers() {
     
     m.bindTooltip(
       "<b>" + z.name + "</b> (" + z.zip + ")<br>" +
-      "Live ML Cases: <b>" + z.cases.toLocaleString() + "</b><br>" +
+      "Est. Cases: <b>" + z.cases.toLocaleString() + "</b><br>" +
       "65+: " + Math.round(z.pct65 * 100) + "% &bull; Risk: <b>" + risk.tier + "</b><br>" +
       "Ridge score: " + (z.risk_score * 100).toFixed(0) + "/100",
       {className: "leaflet-tooltip"}
