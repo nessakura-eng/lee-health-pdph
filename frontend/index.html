@@ -561,6 +561,7 @@ var krigingMarkers = [];
 var heatMarkers    = [];
 var bubbleMarkers  = [];
 var hitMarkers     = [];
+var zipBoundaryLayer = null;
 var arimaChart, scalingChart;
 
 // ── API HELPERS ───────────────────────────────────────────────────────────────
@@ -779,6 +780,8 @@ function renderAllLayers() {
   renderKriging();
   renderHeat();
   renderBubble();
+  if (zipBoundaryLayer) zipBoundaryLayer.bringToFront();
+  hitMarkers.forEach(function(m) { try { m.bringToFront(); } catch(e){} });
 }
 
 // ── HIT MARKERS ───────────────────────────────────────────────────────────────
@@ -978,6 +981,43 @@ function initCharts(data) {
 }
 
 // ── MAP ───────────────────────────────────────────────────────────────────────
+function loadZipBoundaries() {
+  if (!map) return;
+  var leeCo = [
+    "33901","33903","33904","33905","33907","33908","33909","33912","33913",
+    "33914","33916","33917","33919","33920","33921","33922","33924","33928",
+    "33931","33936","33956","33957","33965","33966","33967","33971","33972",
+    "33973","33974","33976","33990","33991","33993","34134","34135"
+  ];
+  var quoted = leeCo.map(function(z){ return "'" + z + "'"; }).join(",");
+  var url = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Current/MapServer/2/query" +
+    "?where=ZCTA5+IN+(" + quoted + ")&outFields=ZCTA5&outSR=4326&f=geojson";
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (zipBoundaryLayer) map.removeLayer(zipBoundaryLayer);
+      zipBoundaryLayer = L.geoJSON(data, {
+        style: function() {
+          return { color: "#006341", weight: 1.5, opacity: 0.75, fill: false };
+        },
+        onEachFeature: function(feature, layer) {
+          var zip = feature.properties.ZCTA5;
+          layer.on("click", function() {
+            var z = zipData.find(function(x) { return x.zip === zip; });
+            if (z) selectZip(z);
+          });
+          layer.on("mouseover", function(e) {
+            e.target.setStyle({ color: "#0077a8", weight: 3, opacity: 1 });
+          });
+          layer.on("mouseout", function(e) {
+            zipBoundaryLayer.resetStyle(e.target);
+          });
+        }
+      }).addTo(map);
+    })
+    .catch(function(err) { console.warn("ZIP boundaries unavailable:", err.message); });
+}
+
 function initMap() {
   if (typeof L === "undefined") {
     console.error("Leaflet not loaded. Check CDN connectivity.");
@@ -986,6 +1026,7 @@ function initMap() {
   }
   map = L.map("map", {center: [26.52, -81.95], zoom: 10, zoomControl: true, attributionControl: false});
   tileLayer = L.tileLayer(TILES.street, {maxZoom: 19}).addTo(map);
+  loadZipBoundaries();
 }
 
 // ── UTILITIES ─────────────────────────────────────────────────────────────────
