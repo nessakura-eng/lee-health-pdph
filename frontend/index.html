@@ -331,6 +331,181 @@ header{
   0%,100%{box-shadow:0 0 0 0 rgba(0,99,65,.4)}
   50%{box-shadow:0 0 0 6px rgba(0,99,65,.0)}
 }
+
+/* ── PRINT REPORT ────────────────────────────────────────────────────────── */
+@media print {
+  @page { margin: 0; size: A4; }
+  body { background: #fff !important; color: #111 !important; margin: 0; padding: 0; }
+  header,
+  .app,
+  .layout,
+  .lpanel,
+  .mpanel,
+  .rpanel,
+  .bbar,
+  #map,
+  #printBtn,
+  .left-panel,
+  .right-panel { display: none !important; }
+  #printReport {
+    display: block !important;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+  }
+  #printReport * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  .rpt-section { page-break-inside: avoid; }
+  .lh-footer { position: fixed; bottom: 0; width: 100%; }
+}
+
+#printReport {
+  display: none;
+  font-family: 'Source Sans 3', Arial, sans-serif;
+  color: #111;
+  background: #fff;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* Letterhead */
+.lh-header {
+  background: #004d32;
+  color: #fff;
+  padding: 28px 40px 20px 40px;
+  border-bottom: 4px solid #b8973a;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.lh-logo-block { display: flex; align-items: center; gap: 16px; }
+.lh-mark {
+  width: 54px; height: 54px;
+  background: #fff;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #004d32;
+  border-bottom: 3px solid #0077a8;
+  flex-shrink: 0;
+}
+.lh-org { display: flex; flex-direction: column; }
+.lh-org-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  line-height: 1.2;
+}
+.lh-org-sub {
+  font-size: .72rem;
+  opacity: .82;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+.lh-meta { text-align: right; font-size: .7rem; opacity: .8; line-height: 1.7; }
+
+/* Report title bar */
+.rpt-title-bar {
+  background: #006341;
+  color: #fff;
+  padding: 14px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.rpt-title { font-family: 'Playfair Display', Georgia, serif; font-size: 1.1rem; font-weight: 700; }
+.rpt-year-badge {
+  background: #b8973a;
+  color: #fff;
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+/* Body */
+.rpt-body { padding: 28px 40px 40px 40px; }
+
+.rpt-section { margin-bottom: 28px; }
+.rpt-section-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: .95rem;
+  font-weight: 700;
+  color: #006341;
+  border-bottom: 2px solid #006341;
+  padding-bottom: 5px;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* Stat cards row */
+.rpt-stat-row { display: flex; gap: 12px; margin-bottom: 6px; }
+.rpt-stat {
+  flex: 1;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 12px 14px;
+  text-align: center;
+}
+.rpt-stat.green { border-color: #006341; background: #f0f7f4; }
+.rpt-stat.blue  { border-color: #0077a8; background: #f0f6fa; }
+.rpt-stat-val { font-size: 1.4rem; font-weight: 700; color: #006341; line-height: 1; }
+.rpt-stat.blue .rpt-stat-val { color: #0077a8; }
+.rpt-stat-lbl { font-size: .65rem; color: #555; text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }
+
+/* ZIP table */
+.rpt-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.rpt-table th {
+  background: #006341; color: #fff;
+  padding: 7px 10px; text-align: left;
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .05em;
+}
+.rpt-table td { padding: 6px 10px; border-bottom: 1px solid #e8e8e8; }
+.rpt-table tr:nth-child(even) td { background: #f8f8f8; }
+.rpt-table tr:last-child td { border-bottom: none; }
+.tier-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: .62rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+}
+.tier-Critical { background: #fde8e8; color: #c0392b; }
+.tier-High     { background: #fef0e0; color: #d4691e; }
+.tier-Moderate { background: #e8f4fa; color: #2471a3; }
+.tier-Low      { background: #eaf4ef; color: #006341; }
+
+/* Age band table */
+.age-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.age-table th { background: #0077a8; color: #fff; padding: 7px 10px; text-align: left; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; }
+.age-table td { padding: 6px 10px; border-bottom: 1px solid #e8e8e8; }
+.age-table tr:nth-child(even) td { background: #f8f8f8; }
+
+/* Disclaimer */
+.rpt-disclaimer {
+  margin-top: 28px;
+  padding: 12px 16px;
+  background: #f5f7f6;
+  border-left: 3px solid #b8973a;
+  font-size: .67rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+/* Footer */
+.lh-footer {
+  background: #004d32;
+  color: rgba(255,255,255,.7);
+  padding: 10px 40px;
+  font-size: .62rem;
+  display: flex;
+  justify-content: space-between;
+  border-top: 2px solid #0077a8;
+}
+
 </style>
 </head>
 <body>
@@ -344,6 +519,7 @@ header{
     </div>
   </div>
   <div class="hdr-right">
+    <button id="printBtn" style="padding:6px 16px;background:#b8973a;color:#fff;border:none;border-radius:20px;font-size:.7rem;font-weight:600;letter-spacing:.05em;cursor:pointer;text-transform:uppercase;">&#128438; Print Report</button>
     <div class="api-status loading" id="apiStatus">&#9679; CONNECTING&hellip;</div>
     <div style="text-align:right">
       <div class="yr-lbl">FORECAST YEAR</div>
@@ -521,7 +697,7 @@ header{
 // After deploying to Render: set to "https://YOUR-APP-NAME.onrender.com/api"
 var API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
   ? "http://localhost:5000/api"
-  : "https://lee-health-pdph.onrender.com/api";  // ← UPDATE THIS after Render deploy
+  : "https://pdph-api.onrender.com/api";  // ← UPDATE THIS after Render deploy
 
 var AGE_BANDS = [
   {band:"50-54", pct:0.067, color:"#2471a3"},
@@ -1105,10 +1281,243 @@ function initControls() {
   });
 }
 
+
+// ── PRINT REPORT ──────────────────────────────────────────────────────────────
+window.printReport = function printReport() {
+  var year = currentYear;
+
+  // ── Pull data from cache (already loaded by dashboard) ────────────────────
+  var zipsData  = cache["/zips?year=" + year] || {};
+  var fcData    = cache["/forecast?year=" + year] || {};
+  var zips      = zipsData.zips || [];
+  var sorted    = zips.slice().sort(function(a,b){return b.cases-a.cases;}).slice(0,10);
+
+  // County summary — read directly from API cache, fallback to DOM text
+  var statPop    = zipsData.bebr_pop   ? zipsData.bebr_pop.toLocaleString()          : document.getElementById('sTot').textContent;
+  var statCases  = zipsData.total_cases? zipsData.total_cases.toLocaleString()        : document.getElementById('sCases').textContent;
+  var statAamr   = fcData.aamr_forecast? fcData.aamr_forecast.toFixed(1)              : document.getElementById('sAamr').textContent;
+  var zips2025   = (cache["/zips?year=2025"] || {});
+  var cases2025  = zips2025.total_cases || 0;
+  var growthPct  = (cases2025 > 0 && zipsData.total_cases)
+    ? (((zipsData.total_cases - cases2025) / cases2025) * 100).toFixed(1) + '%'
+    : document.getElementById('sGrowth').textContent;
+
+  // ── Age band estimates ────────────────────────────────────────────────────
+  var af  = fcData.arima_factor || 1.0;
+  var pop = zipsData.bebr_pop   || 0;
+  var ageBandRows = AGE_BANDS.map(function(a) {
+    var est = pop > 0 ? Math.round(pop * a.pct * ZHANG_RATES[a.band] / 100000 * af) : 0;
+    return '<tr>' +
+      '<td>' + a.band + '</td>' +
+      '<td style="text-align:right">' + est.toLocaleString() + '</td>' +
+      '<td style="text-align:right">' + (a.pct*100).toFixed(1) + '%</td>' +
+    '</tr>';
+  }).join('');
+
+  // ── Selected ZIP section ──────────────────────────────────────────────────
+  var zipSection = '';
+  if (selectedZip) {
+    var sz   = zips.find(function(x){ return x.zip === selectedZip.zip; }) || selectedZip;
+    var srisk = getRisk(sz.cases || 0);
+    var pct65 = sz.pct65 ? (sz.pct65 * 100).toFixed(1) + '%' : 'N/A';
+    zipSection =
+      '<div class="rpt-section">' +
+        '<div class="rpt-section-title">Selected ZIP Code Detail</div>' +
+        '<div class="rpt-stat-row">' +
+          '<div class="rpt-stat green">' +
+            '<div class="rpt-stat-val">' + sz.zip + '</div>' +
+            '<div class="rpt-stat-lbl">' + (sz.name||'') + '</div>' +
+          '</div>' +
+          '<div class="rpt-stat">' +
+            '<div class="rpt-stat-val">' + (sz.pop||0).toLocaleString() + '</div>' +
+            '<div class="rpt-stat-lbl">Total Population</div>' +
+          '</div>' +
+          '<div class="rpt-stat blue">' +
+            '<div class="rpt-stat-val">' + (sz.cases||0).toLocaleString() + '</div>' +
+            '<div class="rpt-stat-lbl">Est. PD Cases</div>' +
+          '</div>' +
+          '<div class="rpt-stat">' +
+            '<div class="rpt-stat-val">' + pct65 + '</div>' +
+            '<div class="rpt-stat-lbl">Pop. Age 65+</div>' +
+          '</div>' +
+          '<div class="rpt-stat">' +
+            '<div class="rpt-stat-val"><span class="tier-badge tier-' + srisk.tier + '">' + srisk.tier + '</span></div>' +
+            '<div class="rpt-stat-lbl">Risk Tier</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  // ── Top ZIP table rows ────────────────────────────────────────────────────
+  var zipRows = sorted.length > 0 ? sorted.map(function(z, i) {
+    var risk = getRisk(z.cases || 0);
+    var score = z.ridge_score != null ? Math.round(z.ridge_score * 100) + '/100' : 'N/A';
+    return '<tr>' +
+      '<td style="color:#555">' + (i+1) + '</td>' +
+      '<td><strong>' + z.zip + '</strong></td>' +
+      '<td>' + (z.name||'') + '</td>' +
+      '<td style="text-align:right;font-weight:600">' + (z.cases||0).toLocaleString() + '</td>' +
+      '<td style="text-align:right">' + score + '</td>' +
+      '<td><span class="tier-badge tier-' + risk.tier + '">' + risk.tier + '</span></td>' +
+    '</tr>';
+  }).join('') : '<tr><td colspan="6" style="color:#888;text-align:center;padding:16px">Waiting for API data — please try again in a moment</td></tr>';
+
+  // ── Data sources table ────────────────────────────────────────────────────
+  var sourcesHTML =
+    '<table class="rpt-table">' +
+      '<thead><tr><th>Source</th><th>Used For</th></tr></thead>' +
+      '<tbody>' +
+        '<tr><td>CDC WONDER (ICD-10 G20, FL, 1999&ndash;2022)</td><td>ARIMA training — age-adjusted mortality rates</td></tr>' +
+        '<tr><td>BEBR/UF Bulletins 198 &amp; 199 (2024)</td><td>County population projections through 2050</td></tr>' +
+        '<tr><td>ACS 2019&ndash;2023 5-year estimates</td><td>65+ population by ZIP code</td></tr>' +
+        '<tr><td>Zhang et al. 2010, <em>Neuroepidemiology</em> 34(2)</td><td>Age-specific PD prevalence rates</td></tr>' +
+        '<tr><td>Willis et al. 2022, <em>npj Parkinson\'s Disease</em> 8:65</td><td>Coastal risk adjustment (+12%)</td></tr>' +
+      '</tbody>' +
+    '</table>';
+
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+
+  // ── Assemble full report HTML ─────────────────────────────────────────────
+  var reportHTML =
+    // ── Letterhead ──
+    '<div class="lh-header">' +
+      '<div class="lh-logo-block">' +
+        '<div class="lh-mark">LH</div>' +
+        '<div class="lh-org">' +
+          '<div class="lh-org-name">Lee Health</div>' +
+          '<div class="lh-org-sub">Parkinson Program &mdash; Lee County, Florida</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="lh-meta">' +
+        'Generated: ' + dateStr + '<br>' +
+        'FIPS 12071 &bull; Lee County, FL<br>' +
+        'Data: CDC WONDER &bull; BEBR/UF &bull; ACS' +
+      '</div>' +
+    '</div>' +
+
+    // ── Report title bar ──
+    '<div class="rpt-title-bar">' +
+      '<div class="rpt-title">Parkinson\'s Disease Burden Forecast Report</div>' +
+      '<div class="rpt-year-badge">Forecast Year: ' + year + '</div>' +
+    '</div>' +
+
+    '<div class="rpt-body">' +
+
+      // ── County summary ──
+      '<div class="rpt-section">' +
+        '<div class="rpt-section-title">County-Level Summary &mdash; ' + year + '</div>' +
+        '<div class="rpt-stat-row">' +
+          '<div class="rpt-stat blue">' +
+            '<div class="rpt-stat-val">' + statPop + '</div>' +
+            '<div class="rpt-stat-lbl">BEBR Projected Population</div>' +
+          '</div>' +
+          '<div class="rpt-stat green">' +
+            '<div class="rpt-stat-val">' + statCases + '</div>' +
+            '<div class="rpt-stat-lbl">Est. PD Cases</div>' +
+          '</div>' +
+          '<div class="rpt-stat blue">' +
+            '<div class="rpt-stat-val">' + statAamr + '</div>' +
+            '<div class="rpt-stat-lbl">AAMR per 100,000</div>' +
+          '</div>' +
+          '<div class="rpt-stat">' +
+            '<div class="rpt-stat-val">' + growthPct + '</div>' +
+            '<div class="rpt-stat-lbl">Growth vs 2025</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+
+      // ── Selected ZIP (if any) ──
+      zipSection +
+
+      // ── Top 10 ZIP table ──
+      '<div class="rpt-section">' +
+        '<div class="rpt-section-title">Top 10 Highest Burden ZIP Codes</div>' +
+        '<table class="rpt-table">' +
+          '<thead><tr>' +
+            '<th style="width:30px">#</th>' +
+            '<th style="width:70px">ZIP</th>' +
+            '<th>Community</th>' +
+            '<th style="text-align:right">Est. Cases</th>' +
+            '<th style="text-align:right">Ridge Score</th>' +
+            '<th style="width:90px">Risk Tier</th>' +
+          '</tr></thead>' +
+          '<tbody>' + zipRows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+
+      // ── Age band table ──
+      '<div class="rpt-section">' +
+        '<div class="rpt-section-title">PD Cases by Age Band</div>' +
+        '<table class="age-table">' +
+          '<thead><tr>' +
+            '<th>Age Group</th>' +
+            '<th style="text-align:right">Est. Cases (' + year + ')</th>' +
+            '<th style="text-align:right">% of At-Risk Pop.</th>' +
+          '</tr></thead>' +
+          '<tbody>' + ageBandRows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+
+      // ── Analytical methods ──
+      '<div class="rpt-section">' +
+        '<div class="rpt-section-title">Analytical Methods</div>' +
+        '<p style="font-size:.78rem;line-height:1.8;color:#333;margin:0">' +
+          'This report was generated using three complementary analytical models. ' +
+          '<strong>ARIMA(1,1,0)</strong> is a time-series statistical model fitted to CDC WONDER age-adjusted ' +
+          'mortality rates for Florida (1999&ndash;2022) using Maximum Likelihood Estimation, producing forecasts ' +
+          'with 80% confidence intervals through 2050. <strong>Ordinary Kriging</strong> is a geostatistical ' +
+          'spatial interpolation model that estimates PD burden in the spaces between observed ZIP code data points, ' +
+          'producing the continuous heatmap surface. <strong>Ridge Regression</strong> is a machine learning model ' +
+          'that scores each ZIP code using four demographic features: proportion of population aged 65+, log of ' +
+          'total population, coastal proximity flag, and the squared 65+ proportion to capture the nonlinear age ' +
+          'effect. Regularization strength &lambda; is selected via Leave-One-Out Cross-Validation. Population ' +
+          'projections are sourced from BEBR/UF Bulletins 198 and 199 (2024), medium series. Age-specific ' +
+          'prevalence rates are based on Zhang et al. (2010) and coastal risk adjustment from Willis et al. (2022).' +
+        '</p>' +
+      '</div>' +
+
+      // ── Data sources ──
+      '<div class="rpt-section">' +
+        '<div class="rpt-section-title">Data Sources</div>' +
+        sourcesHTML +
+      '</div>' +
+
+      // ── Disclaimer ──
+      '<div class="rpt-disclaimer">' +
+        '<strong>Disclaimer:</strong> This report is intended for public health planning and strategic resource ' +
+        'allocation purposes only. It does not constitute a clinical diagnosis and should not be used to make ' +
+        'individual patient care decisions. All data is de-identified and drawn exclusively from publicly available ' +
+        'government and peer-reviewed sources. Forecasts represent statistical projections subject to uncertainty, ' +
+        'particularly at longer time horizons. &bull; <strong>Lee Health Parkinson Program</strong> &bull; ' +
+        'Lee County, Florida &bull; FIPS 12071.' +
+      '</div>' +
+
+    '</div>' +
+
+    // ── Footer ──
+    '<div class="lh-footer">' +
+      '<span>Lee Health Parkinson Program &bull; Lee County, FL &bull; FIPS 12071</span>' +
+      '<span>Parkinson\'s Disease Prediction Heatmap (PDPH) &bull; ' + dateStr + '</span>' +
+    '</div>';
+
+  document.getElementById('printReport').innerHTML = reportHTML;
+  window.print();
+}
+
 // ── BOOT ──────────────────────────────────────────────────────────────────────
-window.addEventListener("load", init);
+window.addEventListener("load", function() {
+  init();
+  document.getElementById("printBtn").addEventListener("click", function() {
+    printReport();
+  });
+});
 
 }());
 </script>
+
+<!-- ── PRINT REPORT ─────────────────────────────────────────────────────── -->
+<div id="printReport"></div>
+
 </body>
 </html>
