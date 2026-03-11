@@ -1351,7 +1351,7 @@ window.printReport = function printReport() {
   // ── Top ZIP table rows ────────────────────────────────────────────────────
   var zipRows = sorted.length > 0 ? sorted.map(function(z, i) {
     var risk = getRisk(z.cases || 0);
-    var score = z.ridge_score != null ? Math.round(z.ridge_score * 100) + '/100' : 'N/A';
+    var score = z.risk_score != null ? Math.round(z.risk_score * 100) + '/100' : 'N/A';
     return '<tr>' +
       '<td style="color:#555">' + (i+1) + '</td>' +
       '<td><strong>' + z.zip + '</strong></td>' +
