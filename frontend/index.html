@@ -332,6 +332,52 @@ header{
   50%{box-shadow:0 0 0 6px rgba(0,99,65,.0)}
 }
 
+/* ── COUNTY SELECTOR ─────────────────────────────────────────────────────── */
+.cnty-item{
+  display:flex;align-items:center;gap:7px;
+  width:100%;padding:6px 8px;border-radius:5px;
+  border:1px solid var(--border-dark);
+  background:white;color:var(--text-mid);
+  font-family:"Source Sans 3",sans-serif;font-size:.63rem;
+  cursor:pointer;transition:all .15s;text-align:left;font-weight:500;
+}
+.cnty-item:hover{border-color:var(--green);color:var(--green);background:var(--green-pale);}
+.cnty-item.active{border-color:var(--green);background:var(--green);color:white;font-weight:600;}
+.cnty-item.active .cnty-hint{color:rgba(255,255,255,.75);}
+.cnty-item:disabled{opacity:.45;cursor:not-allowed;}
+.cnty-dot{font-size:.7rem;flex-shrink:0;line-height:1;}
+.cnty-name{flex:1;line-height:1.2;}
+.cnty-hint{font-family:"IBM Plex Mono",monospace;font-size:.48rem;
+  color:var(--muted);white-space:nowrap;flex-shrink:0;}
+.cnty-warn{font-size:.48rem;color:var(--warn);margin-left:2px;}
+
+/* ── TRAINING OVERLAY ────────────────────────────────────────────────────── */
+#trainOverlay{
+  display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.55);z-index:9999;
+  align-items:center;justify-content:center;
+}
+#trainOverlay.show{display:flex;}
+.train-card{
+  background:white;border-radius:10px;padding:36px 44px;
+  text-align:center;max-width:380px;
+  box-shadow:0 8px 40px rgba(0,0,0,.3);
+  border-top:4px solid var(--green);
+}
+.train-spin{
+  display:block;width:24px;height:24px;
+  border:3px solid var(--border);border-top:3px solid var(--green);
+  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px;
+}
+.train-title{
+  font-family:"Playfair Display",serif;font-size:1.05rem;
+  font-weight:700;color:var(--green);margin-bottom:6px;
+}
+.train-sub{
+  font-family:"IBM Plex Mono",monospace;font-size:.6rem;
+  color:var(--muted);line-height:1.7;
+}
+
 /* ── PRINT REPORT ────────────────────────────────────────────────────────── */
 @media print {
   @page { margin: 0; size: A4; }
@@ -514,8 +560,8 @@ header{
     <div class="lh-mark">LH</div>
     <div class="hdr-divider"></div>
     <div>
-      <div class="hdr-title">Parkinson&#8217;s Disease Burden Forecast &mdash; Lee County, FL</div>
-      <div class="hdr-sub">Lee Health Parkinson Program &bull; Live Predictive Analytics &bull; ARIMA (Statistical) &bull; Kriging (Geostatistical) &bull; Ridge (ML) &bull; FIPS 12071</div>
+      <div class="hdr-title" id="hdrTitle">Parkinson&#8217;s Disease Burden Forecast &mdash; Lee County, FL</div>
+      <div class="hdr-sub" id="hdrSub">Lee Health Parkinson Program &bull; Live Predictive Analytics &bull; ARIMA (Statistical) &bull; Kriging (Geostatistical) &bull; Ridge (ML) &bull; FIPS 12071</div>
     </div>
   </div>
   <div class="hdr-right">
@@ -531,6 +577,24 @@ header{
 <div class="app">
 
 <div class="lpanel">
+
+  <!-- ── COUNTY SELECTOR ─────────────────────────────────────────────── -->
+  <div class="sec" id="countySec">
+    <div class="sec-h" id="cntyToggleBtn" style="cursor:pointer;user-select:none" onclick="toggleCntyPanel()">
+      <h3>SW Florida Counties</h3>
+      <span id="cntyToggleLbl" style="font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:var(--green);font-weight:600;display:flex;align-items:center;gap:3px;">
+        Lee County&nbsp;<span id="cntyArrow">&#9660;</span>
+      </span>
+    </div>
+    <div id="cntyPanel" style="display:none;padding:8px 8px 6px;">
+      <div style="display:flex;flex-direction:column;gap:5px;" id="cntyBtnList"></div>
+      <div style="margin-top:7px;padding:5px 7px;background:var(--green-pale);border-radius:4px;border:1px solid var(--border);font-size:.53rem;color:var(--muted);line-height:1.65;">
+        &#9432; Selecting a new county trains its ML models on-demand (~2&#8211;5&nbsp;sec).
+        Kriging requires &ge;3 ZIP control points.
+      </div>
+    </div>
+  </div>
+
   <div class="sec">
     <div class="sec-h"><h3>&#128197; Forecast Year</h3><span id="slYr">2025</span></div>
     <div class="sec-b">
@@ -612,7 +676,7 @@ header{
       <div>&#8226; BEBR/UF Bulletin 198 (Jan 2024) Medium</div>
       <div>&#8226; BEBR/UF Bulletin 199 (Nov 2024) Age/Sex</div>
       <div>&#8226; ACS 2019&#8211;2023 5yr ZIP 65+ estimates</div>
-      <div>&#8226; Willis et al. 2010 (Medicare prevalence)</div>
+      <div>&#8226; Marras et al. 2018 (N. American PD prevalence)</div>
       <div>&#8226; Willis et al. 2022 (npj Parkinson&#8217;s Dis.)</div>
       <div>&#8226; Weresh et al. 2025 (ARIMA, PMC11755521)</div>
     </div>
@@ -672,8 +736,20 @@ header{
   </div>
 </div>
 
+<!-- ── TRAINING OVERLAY ──────────────────────────────────────────────────── -->
+<div id="trainOverlay">
+  <div class="train-card">
+    <span class="train-spin"></span>
+    <div class="train-title" id="trainMsg">Training ML Models&hellip;</div>
+    <div class="train-sub">
+      ARIMA(1,1,0) &bull; Kriging &bull; Ridge Regression<br>
+      <span style="color:var(--muted-light);font-size:.54rem;">Typically completes in 2&#8211;5 seconds</span>
+    </div>
+  </div>
+</div>
+
 <div class="bbar">
-  <div>Lee Health Parkinson Program &#183; Lee County FL &#183; FIPS 12071 &#183; Live Flask API &#183; ARIMA (statistical) + Kriging (geostatistical) + Ridge (ML)</div>
+  <div id="bbarLeft">Lee Health Parkinson Program &#183; Lee County FL &#183; FIPS 12071 &#183; Live Flask API &#183; ARIMA (statistical) + Kriging (geostatistical) + Ridge (ML)</div>
   <div class="stags">
     <span class="stag">CDC WONDER 1999&#8211;2022</span>
     <span class="stag">BEBR 2024</span>
@@ -697,7 +773,27 @@ header{
 // After deploying to Render: set to "https://YOUR-APP-NAME.onrender.com/api"
 var API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
   ? "http://localhost:5000/api"
-  : "https://lee-health-pdph.onrender.com/api";  // ← UPDATE THIS after Render deploy
+  : "https://pdph-api.onrender.com/api";  // ← UPDATE THIS after Render deploy
+
+// ── COUNTY CONFIG ─────────────────────────────────────────────────────────────
+var COUNTIES = {
+  "lee":      { name:"Lee County",       fips:"12071", center:[26.52,-81.95], zoom:10,
+                bebr:{2025:834,2030:908,2035:978,2040:1041,2045:1095,2050:1141},
+                krigingAvail:true,  warnNote:"" },
+  "charlotte":{ name:"Charlotte County", fips:"12015", center:[26.93,-82.07], zoom:11,
+                bebr:{2025:200,2030:219,2035:234,2040:248,2045:259,2050:268},
+                krigingAvail:true,  warnNote:"" },
+  "collier":  { name:"Collier County",   fips:"12021", center:[26.18,-81.70], zoom:10,
+                bebr:{2025:414,2030:465,2035:511,2040:552,2045:587,2050:616},
+                krigingAvail:true,  warnNote:"" },
+  "hendry":   { name:"Hendry County",    fips:"12051", center:[26.72,-81.18], zoom:10,
+                bebr:{2025:44.5,2030:47.5,2035:50,2040:52.5,2045:54.5,2050:56},
+                krigingAvail:true,  warnNote:"" },
+  "glades":   { name:"Glades County",    fips:"12043", center:[26.90,-81.08], zoom:11,
+                bebr:{2025:14.5,2030:15.5,2035:16.5,2040:17.5,2045:18.2,2050:19},
+                krigingAvail:false, warnNote:"Kriging N/A (2 ZIPs)" }
+};
+var COUNTY_ORDER = ["lee","charlotte","collier","hendry","glades"];
 
 var AGE_BANDS = [
   {band:"50-54", pct:0.067, color:"#2471a3"},
@@ -722,10 +818,13 @@ var TILES = {
 };
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-var currentYear  = 2025;
-var activeLayer  = "kriging";
-var activeRisk   = "all";
-var selectedZip  = null;
+var currentYear   = 2025;
+var currentCounty = "lee";
+var cntyPanelOpen = false;
+var trainedSet    = {"lee": false};   // tracks which counties have been trained
+var activeLayer   = "kriging";
+var activeRisk    = "all";
+var selectedZip   = null;
 
 // API data cache (invalidated on year change)
 var cache = {};
@@ -762,6 +861,131 @@ function invalidateCache() {
   cache = {};
 }
 
+// ── COUNTY SELECTOR ───────────────────────────────────────────────────────────
+function buildCntyButtons() {
+  var list = document.getElementById("cntyBtnList");
+  list.innerHTML = "";
+  COUNTY_ORDER.forEach(function(code) {
+    var c   = COUNTIES[code];
+    var btn = document.createElement("button");
+    btn.className = "cnty-item" + (code === currentCounty ? " active" : "");
+    btn.id = "cnty-btn-" + code;
+
+    var dot  = code === currentCounty ? "&#9679;" : "&#9675;";
+    var hint = code === currentCounty ? "Active"
+             : (trainedSet[code] ? "&#10003; Trained" : "Click to load");
+    var warn = c.warnNote ? '<span class="cnty-warn" title="' + c.warnNote + '">&#9888;</span>' : "";
+
+    btn.innerHTML =
+      '<span class="cnty-dot">' + dot + '</span>' +
+      '<span class="cnty-name">' + c.name + warn + '</span>' +
+      '<span class="cnty-hint" id="cnty-hint-' + code + '">' + hint + '</span>';
+
+    btn.onclick = function() { switchCounty(code); };
+    list.appendChild(btn);
+  });
+}
+
+function toggleCntyPanel() {
+  cntyPanelOpen = !cntyPanelOpen;
+  document.getElementById("cntyPanel").style.display = cntyPanelOpen ? "block" : "none";
+  document.getElementById("cntyArrow").innerHTML = cntyPanelOpen ? "&#9650;" : "&#9660;";
+  if (cntyPanelOpen) buildCntyButtons();
+}
+
+function closeCntyPanel() {
+  cntyPanelOpen = false;
+  document.getElementById("cntyPanel").style.display = "none";
+  document.getElementById("cntyArrow").innerHTML = "&#9660;";
+}
+
+function showTrainOverlay(name) {
+  document.getElementById("trainMsg").textContent = "Training ML Models for " + name + "\u2026";
+  document.getElementById("trainOverlay").classList.add("show");
+}
+
+function hideTrainOverlay() {
+  document.getElementById("trainOverlay").classList.remove("show");
+}
+
+function updateCountyUI(code) {
+  var c = COUNTIES[code];
+  // Header title + subtitle
+  document.getElementById("hdrTitle").textContent =
+    "Parkinson\u2019s Disease Burden Forecast \u2014 " + c.name + ", FL";
+  document.getElementById("hdrSub").textContent =
+    "Lee Health Parkinson Program \u2022 Live Predictive Analytics \u2022 " +
+    "ARIMA (Statistical) \u2022 Kriging (Geostatistical) \u2022 Ridge (ML) \u2022 FIPS " + c.fips;
+  // Bottom bar
+  document.getElementById("bbarLeft").textContent =
+    "Lee Health Parkinson Program \u00b7 " + c.name + " FL \u00b7 FIPS " + c.fips +
+    " \u00b7 Live Flask API \u00b7 ARIMA (statistical) + Kriging (geostatistical) + Ridge (ML)";
+  // County selector toggle label
+  document.getElementById("cntyToggleLbl").innerHTML =
+    c.name + "&nbsp;<span id='cntyArrow'>" +
+    (cntyPanelOpen ? "&#9650;" : "&#9660;") + "</span>";
+  // Rebuild buttons to reflect new active state
+  if (cntyPanelOpen) buildCntyButtons();
+}
+
+function switchCounty(code) {
+  if (code === currentCounty) { closeCntyPanel(); return; }
+  closeCntyPanel();
+  var c = COUNTIES[code];
+  showTrainOverlay(c.name);
+
+  fetch(API_BASE + "/train?county=" + code)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      hideTrainOverlay();
+      trainedSet[code] = true;
+      currentCounty = code;
+
+      // Fly map to new county
+      if (map) map.flyTo(c.center, c.zoom, { duration: 1.2 });
+
+      // Reset layer state — Kriging may not be available for this county
+      if (!c.krigingAvail || (data && !data.kriging_avail)) {
+        if (activeLayer === "kriging") {
+          activeLayer = "heat";
+          document.querySelectorAll("#layerBtns .tb").forEach(function(b) { b.classList.remove("on"); });
+          var heatBtn = document.querySelector("#layerBtns [data-layer='heat']");
+          if (heatBtn) heatBtn.classList.add("on");
+        }
+      }
+      var krigBtn = document.querySelector("#layerBtns [data-layer='kriging']");
+      if (krigBtn) {
+        var avail = c.krigingAvail && (!data || data.kriging_avail !== false);
+        krigBtn.disabled  = !avail;
+        krigBtn.style.opacity = avail ? "1" : "0.4";
+        krigBtn.style.cursor  = avail ? "pointer" : "not-allowed";
+        krigBtn.title = avail ? "" : "Kriging requires \u22653 ZIP control points";
+      }
+
+      updateCountyUI(code);
+      invalidateCache();
+      selectedZip = null;
+      document.getElementById("zoneDetail").innerHTML =
+        '<div style="color:var(--muted);font-size:.63rem;text-align:center;padding:12px 0;line-height:1.9;">' +
+        'Click any ZIP zone on the map<br>to view live ML-predicted PD burden.</div>';
+
+      // Reload model diagnostics for new county
+      apiFetch("/models/summary?county=" + code, function(err, d) {
+        if (!err && d) updateModelDiagnostics(d);
+      });
+
+      // Reload scaling chart with new county BEBR
+      updateScalingChart(code);
+
+      loadZipsAndRender();
+    })
+    .catch(function(err) {
+      hideTrainOverlay();
+      console.error("County training failed:", err);
+      setApiStatus("err", "\u25CF TRAIN FAILED");
+    });
+}
+
 function setApiStatus(state, msg) {
   var el = document.getElementById("apiStatus");
   el.className = "api-status " + state;
@@ -791,8 +1015,11 @@ function init() {
     document.getElementById("apiBanner").classList.remove("show");
     apiReady = true;
     
+    trainedSet["lee"] = true;
+    buildCntyButtons();
+
     // 2. Load model diagnostics
-    apiFetch("/models/summary", function(err, data) {
+    apiFetch("/models/summary?county=lee", function(err, data) {
       if (!err && data) updateModelDiagnostics(data);
     });
     
@@ -830,7 +1057,7 @@ function loadZipsAndRender() {
   if (!apiReady) return;
   showMapLoading(true);
   
-  apiFetch("/zips?year=" + currentYear, function(err, data) {
+  apiFetch("/zips?year=" + currentYear + "&county=" + currentCounty, function(err, data) {
     showMapLoading(false);
     if (err || !data) {
       document.getElementById("mapFooter").textContent = "API error \u2014 " + (err ? err.message : "no data");
@@ -846,7 +1073,8 @@ function loadZipsAndRender() {
     document.getElementById("topYr").textContent   = String(currentYear);
     
     // Load ARIMA for this year for AAMR + growth
-    apiFetch("/forecast?year=" + currentYear, function(err2, fc) {
+    loadZipBoundaries(zipData.map(function(z){ return z.zip; }));
+    apiFetch("/forecast?year=" + currentYear + "&county=" + currentCounty, function(err2, fc) {
       if (!err2 && fc) {
         document.getElementById("sAamr").textContent   = fc.aamr_forecast.toFixed(1);
         document.getElementById("sGrowth").textContent =
@@ -876,7 +1104,7 @@ function renderKriging() {
   if (activeLayer !== "kriging") return;
   
   showMapLoading(true);
-  apiFetch("/kriging?year=" + currentYear + "&n=28", function(err, data) {
+  apiFetch("/kriging?year=" + currentYear + "&n=28&county=" + currentCounty, function(err, data) {
     showMapLoading(false);
     if (err || !data) return;
     
@@ -1061,6 +1289,9 @@ function updateZipList() {
     '<div style="color:var(--muted);font-size:.63rem;padding:8px">No zones match filter</div>';
 }
 
+window.toggleCntyPanel = toggleCntyPanel;
+window.switchCounty    = switchCounty;
+
 window.selectZipByCode = function(code) {
   var z = zipData.find(function(x) { return x.zip === code; });
   if (z) selectZip(z);
@@ -1124,17 +1355,19 @@ function initCharts(data) {
     }
   });
 
-  // Build scaling chart from forecast series
+  // Build scaling chart using the current county's BEBR
+  _buildScalingChart(fYrs, fVals, hVals[hVals.length - 1]);
+}
+
+function _buildScalingChart(fYrs, fVals, baseAamr) {
   var PROJ_YEARS = [2025, 2030, 2035, 2040, 2045, 2050];
-  var bebr = {2025:834,2030:908,2035:978,2040:1041,2045:1095,2050:1141};
-  var baseAamr = hVals[hVals.length - 1];
-  
+  var bebr = COUNTIES[currentCounty].bebr;
   var popVals   = PROJ_YEARS.map(function(y) { return bebr[y]; });
   var scaleVals = PROJ_YEARS.map(function(y) {
-    var idx = fYrs.indexOf(y);
+    var idx = fYrs ? fYrs.indexOf(y) : -1;
     return idx >= 0 ? parseFloat((fVals[idx] / baseAamr).toFixed(2)) : 1.0;
   });
-
+  if (scalingChart) { scalingChart.destroy(); scalingChart = null; }
   scalingChart = new Chart(document.getElementById("scalingChart").getContext("2d"), {
     type: "bar",
     data: {
@@ -1156,16 +1389,21 @@ function initCharts(data) {
   });
 }
 
+function updateScalingChart(code) {
+  // Rebuild scaling chart when county changes — reuse cached forecast series if available
+  var seriesData = cache["/forecast/series"];
+  if (seriesData) {
+    var baseAamr = seriesData.historical_aamr[seriesData.historical_aamr.length - 1];
+    _buildScalingChart(seriesData.forecast_years, seriesData.forecast_aamr, baseAamr);
+  }
+  // If not cached yet, it will be rebuilt when forecast/series is next fetched
+}
+
 // ── MAP ───────────────────────────────────────────────────────────────────────
-function loadZipBoundaries() {
-  if (!map) return;
-  var leeCo = [
-    "33901","33903","33904","33905","33907","33908","33909","33912","33913",
-    "33914","33916","33917","33919","33920","33921","33922","33924","33928",
-    "33931","33936","33956","33957","33965","33966","33967","33971","33972",
-    "33973","33974","33976","33990","33991","33993","34134","34135"
-  ];
-  var quoted = leeCo.map(function(z){ return "'" + z + "'"; }).join(",");
+function loadZipBoundaries(zipCodes) {
+  if (!map || !zipCodes || !zipCodes.length) return;
+  if (zipBoundaryLayer) { map.removeLayer(zipBoundaryLayer); zipBoundaryLayer = null; }
+  var quoted = zipCodes.map(function(z){ return "'" + z + "'"; }).join(",");
   var url = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Current/MapServer/2/query" +
     "?where=ZCTA5+IN+(" + quoted + ")&outFields=ZCTA5&outSR=4326&f=geojson";
   fetch(url)
@@ -1200,9 +1438,9 @@ function initMap() {
     document.getElementById("mapFooter").textContent = "Map library failed to load — check internet connection.";
     return;
   }
-  map = L.map("map", {center: [26.52, -81.95], zoom: 10, zoomControl: true, attributionControl: false});
+  var lc = COUNTIES["lee"];
+  map = L.map("map", {center: lc.center, zoom: lc.zoom, zoomControl: true, attributionControl: false});
   tileLayer = L.tileLayer(TILES.street, {maxZoom: 19}).addTo(map);
-  loadZipBoundaries();
 }
 
 // ── UTILITIES ─────────────────────────────────────────────────────────────────
@@ -1285,10 +1523,11 @@ function initControls() {
 // ── PRINT REPORT ──────────────────────────────────────────────────────────────
 window.printReport = function printReport() {
   var year = currentYear;
+  var cnty = COUNTIES[currentCounty];
 
   // ── Pull data from cache (already loaded by dashboard) ────────────────────
-  var zipsData  = cache["/zips?year=" + year] || {};
-  var fcData    = cache["/forecast?year=" + year] || {};
+  var zipsData  = cache["/zips?year=" + year + "&county=" + currentCounty] || {};
+  var fcData    = cache["/forecast?year=" + year + "&county=" + currentCounty] || {};
   var zips      = zipsData.zips || [];
   var sorted    = zips.slice().sort(function(a,b){return b.cases-a.cases;}).slice(0,10);
 
@@ -1296,7 +1535,7 @@ window.printReport = function printReport() {
   var statPop    = zipsData.bebr_pop   ? zipsData.bebr_pop.toLocaleString()          : document.getElementById('sTot').textContent;
   var statCases  = zipsData.total_cases? zipsData.total_cases.toLocaleString()        : document.getElementById('sCases').textContent;
   var statAamr   = fcData.aamr_forecast? fcData.aamr_forecast.toFixed(1)              : document.getElementById('sAamr').textContent;
-  var zips2025   = (cache["/zips?year=2025"] || {});
+  var zips2025   = (cache["/zips?year=2025&county=" + currentCounty] || {});
   var cases2025  = zips2025.total_cases || 0;
   var growthPct  = (cases2025 > 0 && zipsData.total_cases)
     ? (((zipsData.total_cases - cases2025) / cases2025) * 100).toFixed(1) + '%'
@@ -1351,7 +1590,7 @@ window.printReport = function printReport() {
   // ── Top ZIP table rows ────────────────────────────────────────────────────
   var zipRows = sorted.length > 0 ? sorted.map(function(z, i) {
     var risk = getRisk(z.cases || 0);
-    var score = z.risk_score != null ? Math.round(z.risk_score * 100) + '/100' : 'N/A';
+    var score = z.ridge_score != null ? Math.round(z.ridge_score * 100) + '/100' : 'N/A';
     return '<tr>' +
       '<td style="color:#555">' + (i+1) + '</td>' +
       '<td><strong>' + z.zip + '</strong></td>' +
@@ -1370,7 +1609,7 @@ window.printReport = function printReport() {
         '<tr><td>CDC WONDER (ICD-10 G20, FL, 1999&ndash;2022)</td><td>ARIMA training — age-adjusted mortality rates</td></tr>' +
         '<tr><td>BEBR/UF Bulletins 198 &amp; 199 (2024)</td><td>County population projections through 2050</td></tr>' +
         '<tr><td>ACS 2019&ndash;2023 5-year estimates</td><td>65+ population by ZIP code</td></tr>' +
-        '<tr><td>Zhang et al. 2010, <em>Neuroepidemiology</em> 34(2)</td><td>Age-specific PD prevalence rates</td></tr>' +
+        '<tr><td>Marras et al. 2018, <em>npj Parkinson\'s Disease</em> 4:21</td><td>Age-specific PD prevalence rates (North American administrative claims)</td></tr>' +
         '<tr><td>Willis et al. 2022, <em>npj Parkinson\'s Disease</em> 8:65</td><td>Coastal risk adjustment (+12%)</td></tr>' +
       '</tbody>' +
     '</table>';
@@ -1386,12 +1625,12 @@ window.printReport = function printReport() {
         '<div class="lh-mark">LH</div>' +
         '<div class="lh-org">' +
           '<div class="lh-org-name">Lee Health</div>' +
-          '<div class="lh-org-sub">Parkinson Program &mdash; Lee County, Florida</div>' +
+          '<div class="lh-org-sub">Parkinson Program &mdash; ' + cnty.name + ', Florida</div>' +
         '</div>' +
       '</div>' +
       '<div class="lh-meta">' +
         'Generated: ' + dateStr + '<br>' +
-        'FIPS 12071 &bull; Lee County, FL<br>' +
+        'FIPS ' + cnty.fips + ' &bull; ' + cnty.name + ', FL<br>' +
         'Data: CDC WONDER &bull; BEBR/UF &bull; ACS' +
       '</div>' +
     '</div>' +
@@ -1406,7 +1645,7 @@ window.printReport = function printReport() {
 
       // ── County summary ──
       '<div class="rpt-section">' +
-        '<div class="rpt-section-title">County-Level Summary &mdash; ' + year + '</div>' +
+        '<div class="rpt-section-title">' + cnty.name + ' Summary &mdash; ' + year + '</div>' +
         '<div class="rpt-stat-row">' +
           '<div class="rpt-stat blue">' +
             '<div class="rpt-stat-val">' + statPop + '</div>' +
@@ -1473,7 +1712,7 @@ window.printReport = function printReport() {
           'total population, coastal proximity flag, and the squared 65+ proportion to capture the nonlinear age ' +
           'effect. Regularization strength &lambda; is selected via Leave-One-Out Cross-Validation. Population ' +
           'projections are sourced from BEBR/UF Bulletins 198 and 199 (2024), medium series. Age-specific ' +
-          'prevalence rates are based on Zhang et al. (2010) and coastal risk adjustment from Willis et al. (2022).' +
+          'prevalence rates are drawn from Marras et al. (2018) and coastal risk adjustment from Willis et al. (2022).' +
         '</p>' +
       '</div>' +
 
@@ -1490,14 +1729,14 @@ window.printReport = function printReport() {
         'individual patient care decisions. All data is de-identified and drawn exclusively from publicly available ' +
         'government and peer-reviewed sources. Forecasts represent statistical projections subject to uncertainty, ' +
         'particularly at longer time horizons. &bull; <strong>Lee Health Parkinson Program</strong> &bull; ' +
-        'Lee County, Florida &bull; FIPS 12071.' +
+        cnty.name + ', Florida &bull; FIPS ' + cnty.fips + '.' +
       '</div>' +
 
     '</div>' +
 
     // ── Footer ──
     '<div class="lh-footer">' +
-      '<span>Lee Health Parkinson Program &bull; Lee County, FL &bull; FIPS 12071</span>' +
+      '<span>Lee Health Parkinson Program &bull; ' + cnty.name + ', FL &bull; FIPS ' + cnty.fips + '</span>' +
       '<span>Parkinson\'s Disease Prediction Heatmap (PDPH) &bull; ' + dateStr + '</span>' +
     '</div>';
 
