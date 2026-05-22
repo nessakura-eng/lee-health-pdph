@@ -6,7 +6,7 @@
 <title>Parkinson's Disease Burden Forecast — Lee Health</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.min.css">
 <style>
 :root{
   /* Lee Health brand palette */
@@ -761,8 +761,8 @@ header{
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 (function() {
 "use strict";
@@ -773,7 +773,7 @@ header{
 // After deploying to Render: set to "https://YOUR-APP-NAME.onrender.com/api"
 var API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
   ? "http://localhost:5000/api"
-  : "https://lee-health-pdph.onrender.com/api";  // ← UPDATE THIS after Render deploy
+  : "https://pdph-api.onrender.com/api";  // ← UPDATE THIS after Render deploy
 
 // ── COUNTY CONFIG ─────────────────────────────────────────────────────────────
 var COUNTIES = {
@@ -806,9 +806,10 @@ var AGE_BANDS = [
   {band:"85+",   pct:0.037, color:"#641e16"}
 ];
 
-var ZHANG_RATES = {
-  "50-54":500, "55-59":1000, "60-64":2000, "65-69":5540,
-  "70-74":10800, "75-79":16400, "80-84":24400, "85+":29490
+// Marras et al. 2018, npj Parkinson's Disease 4:21 (North American claims data)
+var MARRAS_RATES = {
+  "50-54":100, "55-59":250, "60-64":550, "65-69":1000,
+  "70-74":1800, "75-79":3000, "80-84":4100, "85+":5200
 };
 
 var TILES = {
@@ -1303,7 +1304,7 @@ function updateAgeBars(data) {
   var pop = data.bebr_pop;
   
   var vals = AGE_BANDS.map(function(a) {
-    return Math.round(pop * a.pct * ZHANG_RATES[a.band] / 100000 * af);
+    return Math.round(pop * a.pct * MARRAS_RATES[a.band] / 100000 * af);
   });
   var mx = Math.max.apply(null, vals) || 1;
   
@@ -1545,7 +1546,7 @@ window.printReport = function printReport() {
   var af  = fcData.arima_factor || 1.0;
   var pop = zipsData.bebr_pop   || 0;
   var ageBandRows = AGE_BANDS.map(function(a) {
-    var est = pop > 0 ? Math.round(pop * a.pct * ZHANG_RATES[a.band] / 100000 * af) : 0;
+    var est = pop > 0 ? Math.round(pop * a.pct * MARRAS_RATES[a.band] / 100000 * af) : 0;
     return '<tr>' +
       '<td>' + a.band + '</td>' +
       '<td style="text-align:right">' + est.toLocaleString() + '</td>' +
