@@ -10,8 +10,8 @@ Features (X):
   - pct65_sq: squared pct65 term (nonlinear age effect)
 
 Target (y):
-  - PD cases per 1000 population (derived from Zhang 2010 prevalence rates
-    applied to ACS age distribution)
+  - PD cases per 1000 population (derived from Marras et al. 2018 North American
+    prevalence rates applied to ACS age distribution)
 
 Ridge solution: beta = (X'X + lambda*I)^{-1} X'y
 
@@ -21,7 +21,7 @@ Cross-validation:
 
 References:
   Ridge: Hoerl & Kennard (1970). Technometrics.
-  Zhang 2010: Neuroepidemiology, 34(2): 117-123.
+  Marras et al. 2018: npj Parkinson's Disease, 4:21.
   Willis 2022: npj Parkinson's Disease, 8:65.
 """
 
@@ -77,34 +77,35 @@ class RidgeRegressionPD:
         """
         Compute PD cases per 1000 population for each ZIP.
         
-        Based on Zhang et al. 2010 Medicare age-specific prevalence:
-          50-54:  500/100K,  55-59: 1000/100K,  60-64: 2000/100K
-          65-69: 5540/100K,  70-74:10800/100K,  75-79:16400/100K
-          80-84:24400/100K,  85+:  29490/100K
-        
+        Based on Marras et al. 2018 North American administrative claims data
+        (npj Parkinson's Disease 4:21), per 100,000:
+          55-59:  250/100K,  60-64:  550/100K
+          65-69: 1000/100K,  70-74: 1800/100K,  75-79: 3000/100K
+          80-84: 4100/100K,  85+:   5200/100K
+
         Applied to BEBR/UF age distribution for Lee County.
         """
-        # Zhang 2010 prevalence rates per 100,000 by age band
-        zhang_rates = {
-            "50_54": 500, "55_59": 1000, "60_64": 2000,
-            "65_69": 5540, "70_74": 10800, "75_79": 16400,
-            "80_84": 24400, "85p": 29490
+        # Marras et al. 2018 North American prevalence rates per 100,000 by age band
+        marras_rates = {
+            "55_59": 250, "60_64": 550,
+            "65_69": 1000, "70_74": 1800, "75_79": 3000,
+            "80_84": 4100, "85p": 5200
         }
-        
+
         # Age distribution within 65+ population (BEBR/UF Bulletin 199, 2024)
         age_dist_65plus = {
             "65_69": 0.32, "70_74": 0.28, "75_79": 0.20,
             "80_84": 0.12, "85p": 0.08
         }
-        
+
         # Weighted avg rate for 65+ (per 100K)
         rate_65plus = sum(
-            age_dist_65plus[k] * zhang_rates[k]
+            age_dist_65plus[k] * marras_rates[k]
             for k in age_dist_65plus
         )
-        
+
         # Rate for under-65 (smaller contribution)
-        rate_under65 = 0.15 * zhang_rates["60_64"] + 0.05 * zhang_rates["55_59"]
+        rate_under65 = 0.15 * marras_rates["60_64"] + 0.05 * marras_rates["55_59"]
         
         y = []
         for row in zip_data:
