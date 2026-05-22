@@ -773,7 +773,7 @@ header{
 // After deploying to Render: set to "https://YOUR-APP-NAME.onrender.com/api"
 var API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
   ? "http://localhost:5000/api"
-  : "https://lee-health-pdph.onrender.com/api";  // ← UPDATE THIS after Render deploy
+  : "https://pdph-api.onrender.com/api";  // ← UPDATE THIS after Render deploy
 
 // ── COUNTY CONFIG ─────────────────────────────────────────────────────────────
 var COUNTIES = {
@@ -1117,12 +1117,14 @@ function renderKriging() {
     var lngStep = (data.lng_max - data.lng_min) / (n - 1);
     var cellR   = Math.max(latStep, lngStep) * 111000 * 0.78;
     
+    var latMin = data.lat_min, latMax = data.lat_max;
+    var lngMin = data.lng_min, lngMax = data.lng_max;
     for (var i = 0; i < n; i++) {
       for (var j = 0; j < n; j++) {
         var val = grid[i][j];
         var lat = lats[i];
         var lng = lngs[j];
-        if (lat < 26.26 || lat > 26.84 || lng < -82.40 || lng > -81.50) continue;
+        if (lat < latMin || lat > latMax || lng < lngMin || lng > lngMax) continue;
         
         var rgb = rampRGB(val);
         var fillColor = "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
